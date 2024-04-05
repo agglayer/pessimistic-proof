@@ -46,8 +46,10 @@ fn main() {
     let prover_time = now.elapsed();
 
     // Read output.
-    let output_root = proof.public_values.read::<KeccakDigest>();
+    let output_root: KeccakDigest = proof.public_values.read();
+    let aggregate_deposits_digest: KeccakDigest = proof.public_values.read();
     println!("new local exit root: {:?}", output_root);
+    println!("aggregate deposits digest: {:?}", aggregate_deposits_digest);
 
     // Verify proof.
     let now = Instant::now();
