@@ -1,2 +1,5 @@
 target/
 .vscode/
+
+# Don't track the generated elf binaries
+elf/
