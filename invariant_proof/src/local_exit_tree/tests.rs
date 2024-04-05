@@ -10,15 +10,11 @@ fn test_local_exit_tree_basic() {
     const TREE_DEPTH: usize = 3;
     let leaves = [[1_u8; 32], [2_u8; 32], [3_u8; 32]];
 
-    let mut local_exit_tree: LocalExitTree<Keccak256, TREE_DEPTH> = LocalExitTree::new();
-    for leaf in leaves {
-        local_exit_tree.add_leaf(leaf);
-    }
     let local_exit_tree: LocalExitTree<Keccak256, TREE_DEPTH> =
         LocalExitTree::from_leaves(leaves.into_iter());
 
     let ground_truth_tree: MerkleTree<TestKeccak256> = {
-        // explicit add the other empty leaves to fill the bottom layer
+        // explicitly add the other empty leaves to fill the bottom layer
         let leaves: Vec<_> = leaves.into_iter().chain([[0_u8; 32]; 5]).collect();
 
         MerkleTree::from_leaves(&leaves)
