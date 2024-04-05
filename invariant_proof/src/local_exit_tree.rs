@@ -45,6 +45,23 @@ where
         self.frontier[frontier_insertion_index] = new_frontier_entry;
         self.leaf_count += 1;
     }
+
+    pub fn get_root(&self) -> H::Digest {
+        let mut root = H::Digest::default();
+        let mut empty_hash_at_height = H::Digest::default();
+
+        for height in 0..TREE_DEPTH {
+            if get_bit_at(self.leaf_count, height) == 1 {
+                root = H::merge(&self.frontier[height], &root);
+            } else {
+                root = H::merge(&root, &empty_hash_at_height);
+            }
+
+            empty_hash_at_height = H::merge(&empty_hash_at_height, &empty_hash_at_height);
+        }
+
+        root
+    }
 }
 
 impl<H> Default for LocalExitTree<H>
@@ -55,4 +72,8 @@ where
     fn default() -> Self {
         Self::new()
     }
+}
+
+fn get_bit_at(target: u32, bit_idx: usize) -> u32 {
+    (target >> bit_idx) & 1
 }
