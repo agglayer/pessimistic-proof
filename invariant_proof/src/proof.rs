@@ -1,7 +1,14 @@
+use std::collections::BTreeMap;
+
+use num_bigint::BigInt;
+use reth_primitives::Address;
+
 use crate::{
     hasher::keccak::{Keccak256Hasher, KeccakDigest},
     local_exit_tree::{withdrawal::Withdrawal, LocalExitTree},
 };
+
+pub type AggregateDeposits = BTreeMap<u32, BTreeMap<Address, BigInt>>;
 
 #[derive(Debug)]
 pub enum LeafProofError {
@@ -17,7 +24,7 @@ pub fn leaf_proof(
     prev_local_exit_tree: LocalExitTree<KeccakDigest>,
     prev_local_exit_root: KeccakDigest,
     withdrawals: Vec<Withdrawal>,
-) -> Result<KeccakDigest, LeafProofError> {
+) -> Result<(KeccakDigest, AggregateDeposits), LeafProofError> {
     {
         let computed_root = prev_local_exit_tree.get_root::<Keccak256Hasher>();
 
@@ -29,10 +36,27 @@ pub fn leaf_proof(
         }
     }
 
-    let mut new_tree = prev_local_exit_tree;
+    let mut new_local_exit_tree = prev_local_exit_tree;
+    let mut aggregate_deposits = BTreeMap::new();
+
     for withdrawal in withdrawals {
-        new_tree.add_leaf::<Keccak256Hasher>(withdrawal.hash());
+        new_local_exit_tree.add_leaf::<Keccak256Hasher>(withdrawal.hash());
+
+        // FIXME: This incorrectly uses `Withdrawal.dest_address` as the token identifier
+        let withdrawal_amount = withdrawal.amount.clone();
+        aggregate_deposits
+            .entry(withdrawal.dest_network)
+            .and_modify(|network_map: &mut BTreeMap<Address, BigInt>| {
+                network_map
+                    .entry(withdrawal.dest_address)
+                    .and_modify(|current_amount| *current_amount += withdrawal.amount)
+                    .or_insert_with(|| withdrawal_amount.clone());
+            })
+            .or_insert(BTreeMap::from_iter(std::iter::once((
+                withdrawal.dest_address,
+                withdrawal_amount,
+            ))));
     }
 
-    Ok(new_tree.get_root::<Keccak256Hasher>())
+    Ok((new_local_exit_tree.get_root::<Keccak256Hasher>(), aggregate_deposits))
 }
