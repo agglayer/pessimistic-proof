@@ -14,6 +14,8 @@ fn test_local_exit_tree_basic() {
     for leaf in leaves {
         local_exit_tree.add_leaf(leaf);
     }
+    let local_exit_tree: LocalExitTree<Keccak256, TREE_DEPTH> =
+        LocalExitTree::from_leaves(leaves.into_iter());
 
     let ground_truth_tree: MerkleTree<TestKeccak256> = {
         // explicit add the other empty leaves to fill the bottom layer

@@ -21,6 +21,16 @@ where
         }
     }
 
+    pub fn from_leaves(leaves: impl Iterator<Item = H::Digest>) -> Self {
+        let mut tree = Self::new();
+
+        for leaf in leaves {
+            tree.add_leaf(leaf);
+        }
+
+        tree
+    }
+
     pub fn add_leaf(&mut self, leaf: H::Digest) {
         // the index at which the new entry will be inserted
         let frontier_insertion_index: usize = {
