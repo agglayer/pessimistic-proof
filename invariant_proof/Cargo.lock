@@ -1180,6 +1180,7 @@ dependencies = [
  "autocfg",
  "num-integer",
  "num-traits",
+ "serde",
 ]
 
 [[package]]
@@ -1363,6 +1364,8 @@ dependencies = [
  "num-bigint",
  "reth-primitives",
  "rs_merkle",
+ "serde",
+ "serde_with",
  "tiny-keccak 2.0.2 (git+https://github.com/sp1-patches/tiny-keccak?branch=patch-v2.0.2)",
 ]
 

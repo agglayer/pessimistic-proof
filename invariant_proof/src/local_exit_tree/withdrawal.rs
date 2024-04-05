@@ -1,9 +1,11 @@
 use num_bigint::BigInt;
 use reth_primitives::{revm_primitives::bitvec::view::BitViewSized, Address};
+use serde::{Deserialize, Serialize};
 use tiny_keccak::{Hasher, Keccak};
 
 use crate::hasher::keccak::keccak256;
 
+#[derive(Serialize, Deserialize)]
 pub struct Withdrawal {
     pub leaf_type: u8,
 

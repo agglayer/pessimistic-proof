@@ -1369,6 +1369,8 @@ version = "0.1.0"
 dependencies = [
  "num-bigint",
  "reth-primitives",
+ "serde",
+ "serde_with",
  "tiny-keccak 2.0.2 (git+https://github.com/sp1-patches/tiny-keccak?branch=patch-v2.0.2)",
 ]
 

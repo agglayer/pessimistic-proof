@@ -1,3 +1,6 @@
+use serde::{Deserialize, Serialize};
+use serde_with::serde_as;
+
 use crate::hasher::Hasher;
 
 pub mod withdrawal;
@@ -5,15 +8,20 @@ pub mod withdrawal;
 #[cfg(test)]
 mod tests;
 
-#[derive(Clone, Debug)]
-pub struct LocalExitTree<Digest, const TREE_DEPTH: usize = 32> {
+#[serde_as]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct LocalExitTree<Digest, const TREE_DEPTH: usize = 32>
+where
+    Digest: Serialize + for<'a> Deserialize<'a>,
+{
     leaf_count: u32,
+    #[serde_as(as = "[_; TREE_DEPTH]")]
     frontier: [Digest; TREE_DEPTH],
 }
 
 impl<Digest, const TREE_DEPTH: usize> LocalExitTree<Digest, TREE_DEPTH>
 where
-    Digest: Copy + Default,
+    Digest: Copy + Default + Serialize + for<'a> Deserialize<'a>,
 {
     pub fn new() -> Self {
         LocalExitTree {
@@ -87,7 +95,7 @@ where
 
 impl<Digest, const TREE_DEPTH: usize> Default for LocalExitTree<Digest, TREE_DEPTH>
 where
-    Digest: Copy + Default,
+    Digest: Copy + Default + Serialize + for<'a> Deserialize<'a>,
 {
     fn default() -> Self {
         Self::new()
