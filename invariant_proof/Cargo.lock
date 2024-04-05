@@ -1356,7 +1356,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "poly_invariant_proof"
+name = "poly-invariant-proof"
 version = "0.1.0"
 dependencies = [
  "hex",
