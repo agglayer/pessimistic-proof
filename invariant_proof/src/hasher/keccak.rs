@@ -1,9 +1,18 @@
 use super::Hasher;
 use tiny_keccak::{Hasher as _, Keccak};
 
-pub struct Keccak256;
+pub fn keccak256(data: &[u8]) -> [u8; 32] {
+    let mut hasher = Keccak::v256();
+    hasher.update(data);
 
-impl Hasher for Keccak256 {
+    let mut output = [0u8; 32];
+    hasher.finalize(&mut output);
+    output
+}
+
+pub struct Keccak256Hasher;
+
+impl Hasher for Keccak256Hasher {
     type Digest = [u8; 32];
 
     fn merge(left: &[u8; 32], right: &[u8; 32]) -> Self::Digest {

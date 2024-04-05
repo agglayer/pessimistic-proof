@@ -1,5 +1,7 @@
 use crate::hasher::Hasher;
 
+pub mod deposit;
+
 #[cfg(test)]
 mod tests;
 
