@@ -1,5 +1,4 @@
-mod keccak;
-pub use keccak::{keccak256, Keccak256Hasher};
+pub mod keccak;
 
 pub trait Hasher {
     type Digest;

@@ -6,34 +6,39 @@ pub mod withdrawal;
 mod tests;
 
 #[derive(Clone, Debug)]
-pub struct LocalExitTree<H: Hasher, const TREE_DEPTH: usize = 32> {
+pub struct LocalExitTree<Digest, const TREE_DEPTH: usize = 32> {
     leaf_count: u32,
-    frontier: [H::Digest; TREE_DEPTH],
+    frontier: [Digest; TREE_DEPTH],
 }
 
-impl<H, const TREE_DEPTH: usize> LocalExitTree<H, TREE_DEPTH>
+impl<Digest, const TREE_DEPTH: usize> LocalExitTree<Digest, TREE_DEPTH>
 where
-    H: Hasher,
-    H::Digest: Copy + Default,
+    Digest: Copy + Default,
 {
     pub fn new() -> Self {
         LocalExitTree {
             leaf_count: 0,
-            frontier: [H::Digest::default(); TREE_DEPTH],
+            frontier: [Digest::default(); TREE_DEPTH],
         }
     }
 
-    pub fn from_leaves(leaves: impl Iterator<Item = H::Digest>) -> Self {
+    pub fn from_leaves<H>(leaves: impl Iterator<Item = Digest>) -> Self
+    where
+        H: Hasher<Digest = Digest>,
+    {
         let mut tree = Self::new();
 
         for leaf in leaves {
-            tree.add_leaf(leaf);
+            tree.add_leaf::<H>(leaf);
         }
 
         tree
     }
 
-    pub fn add_leaf(&mut self, leaf: H::Digest) {
+    pub fn add_leaf<H>(&mut self, leaf: H::Digest)
+    where
+        H: Hasher<Digest = Digest>,
+    {
         // the index at which the new entry will be inserted
         let frontier_insertion_index: usize = {
             let leaf_count_after_insertion = self.leaf_count + 1;
@@ -59,9 +64,12 @@ where
         self.leaf_count += 1;
     }
 
-    pub fn get_root(&self) -> H::Digest {
-        let mut root = H::Digest::default();
-        let mut empty_hash_at_height = H::Digest::default();
+    pub fn get_root<H>(&self) -> Digest
+    where
+        H: Hasher<Digest = Digest>,
+    {
+        let mut root = Digest::default();
+        let mut empty_hash_at_height = Digest::default();
 
         for height in 0..TREE_DEPTH {
             if get_bit_at(self.leaf_count, height) == 1 {
@@ -77,10 +85,9 @@ where
     }
 }
 
-impl<H> Default for LocalExitTree<H>
+impl<Digest, const TREE_DEPTH: usize> Default for LocalExitTree<Digest, TREE_DEPTH>
 where
-    H: Hasher,
-    H::Digest: Copy + Default,
+    Digest: Copy + Default,
 {
     fn default() -> Self {
         Self::new()

@@ -1,7 +1,7 @@
 use rs_merkle::{Hasher as MerkleHasher, MerkleTree};
 use tiny_keccak::{Hasher as _, Keccak};
 
-use crate::hasher::Keccak256Hasher;
+use crate::hasher::keccak::{Keccak256Hasher, KeccakDigest};
 
 use super::LocalExitTree;
 
@@ -10,8 +10,8 @@ fn test_local_exit_tree_basic() {
     const TREE_DEPTH: usize = 3;
     let leaves = [[1_u8; 32], [2_u8; 32], [3_u8; 32]];
 
-    let local_exit_tree: LocalExitTree<Keccak256Hasher, TREE_DEPTH> =
-        LocalExitTree::from_leaves(leaves.into_iter());
+    let local_exit_tree: LocalExitTree<KeccakDigest, TREE_DEPTH> =
+        LocalExitTree::from_leaves::<Keccak256Hasher>(leaves.into_iter());
 
     let ground_truth_tree: MerkleTree<TestKeccak256> = {
         // explicitly add the other empty leaves to fill the bottom layer
@@ -22,7 +22,7 @@ fn test_local_exit_tree_basic() {
 
     assert_eq!(
         ground_truth_tree.root().unwrap(),
-        local_exit_tree.get_root()
+        local_exit_tree.get_root::<Keccak256Hasher>()
     );
 }
 

@@ -2,7 +2,7 @@ use num_bigint::BigInt;
 use reth_primitives::{revm_primitives::bitvec::view::BitViewSized, Address};
 use tiny_keccak::{Hasher, Keccak};
 
-use crate::hasher::keccak256;
+use crate::hasher::keccak::keccak256;
 
 pub struct Withdrawal {
     pub leaf_type: u8,
@@ -52,7 +52,10 @@ impl Withdrawal {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{hasher::Keccak256Hasher, local_exit_tree::LocalExitTree};
+    use crate::{
+        hasher::keccak::{Keccak256Hasher, KeccakDigest},
+        local_exit_tree::LocalExitTree,
+    };
 
     #[test]
     fn test_deposit_hash() {
@@ -78,9 +81,9 @@ mod tests {
             hex::encode(leaf_hash)
         );
 
-        let mut dm = LocalExitTree::<Keccak256Hasher>::new();
-        dm.add_leaf(leaf_hash);
-        let dm_root = dm.get_root();
+        let mut dm = LocalExitTree::<KeccakDigest>::new();
+        dm.add_leaf::<Keccak256Hasher>(leaf_hash);
+        let dm_root = dm.get_root::<Keccak256Hasher>();
         assert_eq!(
             "5ba002329b53c11a2f1dfe90b11e031771842056cf2125b43da8103c199dcd7f",
             hex::encode(dm_root)
