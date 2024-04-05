@@ -1,14 +1,48 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, ops::Deref};
 
 use num_bigint::BigInt;
 use reth_primitives::Address;
+use serde::{Deserialize, Serialize};
+use tiny_keccak::{Hasher, Keccak};
 
 use crate::{
     hasher::keccak::{Keccak256Hasher, KeccakDigest},
     local_exit_tree::{withdrawal::Withdrawal, LocalExitTree},
 };
 
-pub type AggregateDeposits = BTreeMap<u32, BTreeMap<Address, BigInt>>;
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AggregateDeposits(BTreeMap<u32, BTreeMap<Address, BigInt>>);
+
+impl AggregateDeposits {
+    pub fn new(aggregate_deposits: BTreeMap<u32, BTreeMap<Address, BigInt>>) -> Self {
+        Self(aggregate_deposits)
+    }
+
+    pub fn hash(&self) -> KeccakDigest {
+        let mut hasher = Keccak::v256();
+
+        for (dest_network, token_map) in self.0.iter() {
+            hasher.update(&dest_network.to_be_bytes());
+
+            for (token_id, amount) in token_map {
+                hasher.update(token_id.as_slice());
+                hasher.update(&amount.to_signed_bytes_be());
+            }
+        }
+
+        let mut output = [0u8; 32];
+        hasher.finalize(&mut output);
+        output
+    }
+}
+
+impl Deref for AggregateDeposits {
+    type Target = BTreeMap<u32, BTreeMap<Address, BigInt>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 #[derive(Debug)]
 pub enum LeafProofError {
@@ -58,5 +92,8 @@ pub fn leaf_proof(
             ))));
     }
 
-    Ok((new_local_exit_tree.get_root::<Keccak256Hasher>(), aggregate_deposits))
+    Ok((
+        new_local_exit_tree.get_root::<Keccak256Hasher>(),
+        AggregateDeposits::new(aggregate_deposits),
+    ))
 }

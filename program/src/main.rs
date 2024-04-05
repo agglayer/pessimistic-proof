@@ -16,6 +16,5 @@ pub fn main() {
     let (new_local_exit_root, aggregate_deposits) = leaf_proof(local_exit_tree, local_exit_root, withdrawals).unwrap();
 
     sp1_zkvm::io::commit(&new_local_exit_root);
-    // FIXME: commit to the hash instead
-    sp1_zkvm::io::commit(&aggregate_deposits);
+    sp1_zkvm::io::commit(&aggregate_deposits.hash());
 }
