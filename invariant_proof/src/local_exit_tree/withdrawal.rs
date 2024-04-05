@@ -21,6 +21,25 @@ pub struct Withdrawal {
 }
 
 impl Withdrawal {
+    pub fn new(
+        leaf_type: u8,
+        orig_network: u32,
+        orig_address: Address,
+        dest_network: u32,
+        dest_address: Address,
+        amount: BigInt,
+        metadata: Vec<u8>,
+    ) -> Self {
+        Self {
+            leaf_type,
+            orig_network,
+            orig_address,
+            dest_network,
+            dest_address,
+            amount,
+            metadata,
+        }
+    }
     pub fn hash(&self) -> [u8; 32] {
         let mut hasher = Keccak::v256();
 
