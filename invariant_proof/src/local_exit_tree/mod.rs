@@ -1,14 +1,15 @@
 use crate::hasher::Hasher;
 
-pub const TREE_DEPTH: usize = 32;
+#[cfg(test)]
+mod tests;
 
 #[derive(Clone, Debug)]
-pub struct LocalExitTree<H: Hasher> {
+pub struct LocalExitTree<H: Hasher, const TREE_DEPTH: usize = 32> {
     leaf_count: u32,
     frontier: [H::Digest; TREE_DEPTH],
 }
 
-impl<H> LocalExitTree<H>
+impl<H, const TREE_DEPTH: usize> LocalExitTree<H, TREE_DEPTH>
 where
     H: Hasher,
     H::Digest: Copy + Default,

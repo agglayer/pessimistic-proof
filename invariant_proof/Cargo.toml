@@ -9,3 +9,6 @@ edition = "2021"
 tiny-keccak = { git = "https://github.com/sp1-patches/tiny-keccak", branch = "patch-v2.0.2", features = [
     "keccak",
 ] }
+
+[dev-dependencies]
+rs_merkle = { version = "1.4", default-features = false }
