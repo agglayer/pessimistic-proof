@@ -1,17 +1,19 @@
 #![no_main]
+
+use poly_invariant_proof::{
+    hasher::keccak::KeccakDigest,
+    leaf_proof,
+    local_exit_tree::{withdrawal::Withdrawal, LocalExitTree},
+};
+
 sp1_zkvm::entrypoint!(main);
 
 pub fn main() {
-    let n = sp1_zkvm::io::read::<u32>();
-    let mut a: u128 = 0;
-    let mut b: u128 = 1;
-    let mut sum: u128;
-    for _ in 1..n {
-        sum = a + b;
-        a = b;
-        b = sum;
-    }
+    let local_exit_tree = sp1_zkvm::io::read::<LocalExitTree<KeccakDigest>>();
+    let local_exit_root = sp1_zkvm::io::read::<KeccakDigest>();
+    let withdrawals = sp1_zkvm::io::read::<Vec<Withdrawal>>();
 
-    sp1_zkvm::io::commit(&a);
-    sp1_zkvm::io::commit(&b);
+    let new_local_exit_root = leaf_proof(local_exit_tree, local_exit_root, withdrawals).unwrap();
+
+    sp1_zkvm::io::commit(&new_local_exit_root);
 }
