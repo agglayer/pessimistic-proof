@@ -1,9 +1,8 @@
 use rs_merkle::{Hasher as MerkleHasher, MerkleTree};
 use tiny_keccak::{Hasher as _, Keccak};
 
-use crate::hasher::keccak::{Keccak256Hasher, KeccakDigest};
-
 use super::LocalExitTree;
+use crate::hasher::keccak::{Keccak256Hasher, KeccakDigest};
 
 #[test]
 fn test_local_exit_tree_basic() {
@@ -20,10 +19,7 @@ fn test_local_exit_tree_basic() {
         MerkleTree::from_leaves(&leaves)
     };
 
-    assert_eq!(
-        ground_truth_tree.root().unwrap(),
-        local_exit_tree.get_root::<Keccak256Hasher>()
-    );
+    assert_eq!(ground_truth_tree.root().unwrap(), local_exit_tree.get_root::<Keccak256Hasher>());
 }
 
 #[derive(Clone, Debug)]

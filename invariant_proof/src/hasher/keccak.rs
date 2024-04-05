@@ -1,5 +1,6 @@
-use super::Hasher;
 use tiny_keccak::{Hasher as _, Keccak};
+
+use super::Hasher;
 
 pub type KeccakDigest = [u8; 32];
 

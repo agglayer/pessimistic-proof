@@ -1,5 +1,3 @@
-//! A simple script to generate and verify the proof of a given program.
-
 use std::time::Instant;
 
 use poly_invariant_proof::{
@@ -42,7 +40,7 @@ fn main() {
     stdin.write(&initial_exit_tree);
     stdin.write(&initial_exit_tree.get_root::<Keccak256Hasher>());
     stdin.write(&new_withdrawals);
-    
+
     let now = Instant::now();
     let mut proof = SP1Prover::prove(ELF, stdin).expect("proving failed");
     let prover_time = now.elapsed();
