@@ -1,6 +1,6 @@
 use crate::hasher::Hasher;
 
-pub mod deposit;
+pub mod withdrawal;
 
 #[cfg(test)]
 mod tests;

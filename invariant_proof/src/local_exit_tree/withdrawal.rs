@@ -4,7 +4,7 @@ use tiny_keccak::{Hasher, Keccak};
 
 use crate::hasher::keccak256;
 
-pub struct Deposit {
+pub struct Withdrawal {
     pub leaf_type: u8,
 
     pub orig_network: u32,
@@ -18,7 +18,7 @@ pub struct Deposit {
     pub metadata: Vec<u8>,
 }
 
-impl Deposit {
+impl Withdrawal {
     pub fn hash(&self) -> [u8; 32] {
         let mut hasher = Keccak::v256();
 
@@ -56,7 +56,7 @@ mod tests {
 
     #[test]
     fn test_deposit_hash() {
-        let mut deposit = Deposit {
+        let mut deposit = Withdrawal {
             leaf_type: 0,
             orig_network: 0,
             orig_address: Address::default(),
