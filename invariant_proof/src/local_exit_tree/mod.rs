@@ -9,6 +9,7 @@ pub mod withdrawal;
 #[cfg(test)]
 mod tests;
 
+/// Represents a local exit tree as defined by the LxLy bridge.
 #[serde_as]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct LocalExitTree<Digest, const TREE_DEPTH: usize = 32>
@@ -24,6 +25,7 @@ impl<Digest, const TREE_DEPTH: usize> LocalExitTree<Digest, TREE_DEPTH>
 where
     Digest: Copy + Default + Serialize + for<'a> Deserialize<'a>,
 {
+    /// Creates a new empty [`LocalExitTree`].
     pub fn new() -> Self {
         LocalExitTree {
             leaf_count: 0,
@@ -31,6 +33,7 @@ where
         }
     }
 
+    /// Creates a new [`LocalExitTree`] and populates its leaves.
     pub fn from_leaves<H>(leaves: impl Iterator<Item = Digest>) -> Self
     where
         H: Hasher<Digest = Digest>,
@@ -44,6 +47,7 @@ where
         tree
     }
 
+    /// Appends a leaf to the tree.
     pub fn add_leaf<H>(&mut self, leaf: H::Digest)
     where
         H: Hasher<Digest = Digest>,
@@ -73,6 +77,7 @@ where
         self.leaf_count += 1;
     }
 
+    /// Computes and returns the root of the tree.
     pub fn get_root<H>(&self) -> Digest
     where
         H: Hasher<Digest = Digest>,
@@ -103,6 +108,7 @@ where
     }
 }
 
+/// Returns the bit value at index `bit_idx` in `target`
 fn get_bit_at(target: u32, bit_idx: usize) -> u32 {
     (target >> bit_idx) & 1
 }
