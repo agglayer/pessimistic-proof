@@ -15,6 +15,5 @@ tiny-keccak = { git = "https://github.com/sp1-patches/tiny-keccak", branch = "pa
 ] }
 
 [dev-dependencies]
-base64 = "0.22"
 hex = "0.4.3"
 rs_merkle = { version = "1.4", default-features = false }
