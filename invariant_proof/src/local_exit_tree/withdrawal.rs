@@ -3,8 +3,9 @@ use reth_primitives::{revm_primitives::bitvec::view::BitViewSized, Address};
 use serde::{Deserialize, Serialize};
 use tiny_keccak::{Hasher, Keccak};
 
-use crate::hasher::keccak::keccak256;
+use super::hasher::keccak::keccak256;
 
+/// Represents a token withdrawal from the network.
 #[derive(Serialize, Deserialize)]
 pub struct Withdrawal {
     pub leaf_type: u8,
@@ -21,6 +22,7 @@ pub struct Withdrawal {
 }
 
 impl Withdrawal {
+    /// Creates a new [`Withdrawal`].
     pub fn new(
         leaf_type: u8,
         orig_network: u32,
@@ -40,6 +42,8 @@ impl Withdrawal {
             metadata,
         }
     }
+
+    /// Hashes the [`Withdrawal`] to be inserted in a [`crate::local_exit_tree::LocalExitTree`].
     pub fn hash(&self) -> [u8; 32] {
         let mut hasher = Keccak::v256();
 
@@ -73,9 +77,9 @@ impl Withdrawal {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
+    use crate::local_exit_tree::{
         hasher::keccak::{Keccak256Hasher, KeccakDigest},
-        local_exit_tree::LocalExitTree,
+        LocalExitTree,
     };
 
     #[test]

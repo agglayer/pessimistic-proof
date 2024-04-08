@@ -2,8 +2,10 @@ use tiny_keccak::{Hasher as _, Keccak};
 
 use super::Hasher;
 
+/// The output type of Keccak hashing.
 pub type KeccakDigest = [u8; 32];
 
+/// Hashes the input data using a Keccak hasher with a 256-bit security level.
 pub fn keccak256(data: &[u8]) -> KeccakDigest {
     let mut hasher = Keccak::v256();
     hasher.update(data);
@@ -13,6 +15,7 @@ pub fn keccak256(data: &[u8]) -> KeccakDigest {
     output
 }
 
+/// A Keccak hasher with a 256-bit security level.
 pub struct Keccak256Hasher;
 
 impl Hasher for Keccak256Hasher {

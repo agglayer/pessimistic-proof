@@ -1,9 +1,8 @@
 #![no_main]
 
 use poly_invariant_proof::{
-    hasher::keccak::KeccakDigest,
     leaf_proof,
-    local_exit_tree::{withdrawal::Withdrawal, LocalExitTree},
+    local_exit_tree::{hasher::keccak::KeccakDigest, withdrawal::Withdrawal, LocalExitTree},
 };
 
 sp1_zkvm::entrypoint!(main);

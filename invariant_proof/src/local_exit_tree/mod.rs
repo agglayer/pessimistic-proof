@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 
-use crate::hasher::Hasher;
+pub mod hasher;
+use hasher::Hasher;
 
 pub mod withdrawal;
 
