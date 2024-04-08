@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 
@@ -12,46 +14,43 @@ mod tests;
 /// Represents a local exit tree as defined by the LxLy bridge.
 #[serde_as]
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct LocalExitTree<Digest, const TREE_DEPTH: usize = 32>
+pub struct LocalExitTree<Digest, H, const TREE_DEPTH: usize = 32>
 where
     Digest: Serialize + for<'a> Deserialize<'a>,
 {
     leaf_count: u32,
     #[serde_as(as = "[_; TREE_DEPTH]")]
     frontier: [Digest; TREE_DEPTH],
+    _hasher: PhantomData<H>,
 }
 
-impl<Digest, const TREE_DEPTH: usize> LocalExitTree<Digest, TREE_DEPTH>
+impl<Digest, H, const TREE_DEPTH: usize> LocalExitTree<Digest, H, TREE_DEPTH>
 where
     Digest: Copy + Default + Serialize + for<'a> Deserialize<'a>,
+    H: Hasher<Digest = Digest>,
 {
     /// Creates a new empty [`LocalExitTree`].
     pub fn new() -> Self {
         LocalExitTree {
             leaf_count: 0,
             frontier: [Digest::default(); TREE_DEPTH],
+            _hasher: PhantomData,
         }
     }
 
     /// Creates a new [`LocalExitTree`] and populates its leaves.
-    pub fn from_leaves<H>(leaves: impl Iterator<Item = Digest>) -> Self
-    where
-        H: Hasher<Digest = Digest>,
-    {
+    pub fn from_leaves(leaves: impl Iterator<Item = Digest>) -> Self {
         let mut tree = Self::new();
 
         for leaf in leaves {
-            tree.add_leaf::<H>(leaf);
+            tree.add_leaf(leaf);
         }
 
         tree
     }
 
     /// Appends a leaf to the tree.
-    pub fn add_leaf<H>(&mut self, leaf: H::Digest)
-    where
-        H: Hasher<Digest = Digest>,
-    {
+    pub fn add_leaf(&mut self, leaf: H::Digest) {
         // the index at which the new entry will be inserted
         let frontier_insertion_index: usize = {
             let leaf_count_after_insertion = self.leaf_count + 1;
@@ -78,10 +77,7 @@ where
     }
 
     /// Computes and returns the root of the tree.
-    pub fn get_root<H>(&self) -> Digest
-    where
-        H: Hasher<Digest = Digest>,
-    {
+    pub fn get_root(&self) -> Digest {
         let mut root = Digest::default();
         let mut empty_hash_at_height = Digest::default();
 
@@ -99,9 +95,10 @@ where
     }
 }
 
-impl<Digest, const TREE_DEPTH: usize> Default for LocalExitTree<Digest, TREE_DEPTH>
+impl<Digest, H, const TREE_DEPTH: usize> Default for LocalExitTree<Digest, H, TREE_DEPTH>
 where
     Digest: Copy + Default + Serialize + for<'a> Deserialize<'a>,
+    H: Hasher<Digest = Digest>,
 {
     fn default() -> Self {
         Self::new()

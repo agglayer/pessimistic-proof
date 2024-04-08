@@ -11,8 +11,8 @@ fn test_local_exit_tree_basic() {
     const TREE_DEPTH: usize = 3;
     let leaves = [[1_u8; 32], [2_u8; 32], [3_u8; 32]];
 
-    let local_exit_tree: LocalExitTree<KeccakDigest, TREE_DEPTH> =
-        LocalExitTree::from_leaves::<Keccak256Hasher>(leaves.into_iter());
+    let local_exit_tree: LocalExitTree<KeccakDigest, Keccak256Hasher, TREE_DEPTH> =
+        LocalExitTree::from_leaves(leaves.into_iter());
 
     let ground_truth_tree: MerkleTree<TestKeccak256> = {
         // explicitly add the other empty leaves to fill the bottom layer
@@ -21,7 +21,7 @@ fn test_local_exit_tree_basic() {
         MerkleTree::from_leaves(&leaves)
     };
 
-    assert_eq!(ground_truth_tree.root().unwrap(), local_exit_tree.get_root::<Keccak256Hasher>());
+    assert_eq!(ground_truth_tree.root().unwrap(), local_exit_tree.get_root());
 }
 
 #[derive(Clone, Debug)]

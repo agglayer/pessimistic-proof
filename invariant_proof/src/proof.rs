@@ -56,12 +56,12 @@ pub enum LeafProofError {
 /// Returns the root of the local exit tree resulting from adding every withdrawal to the previous
 /// local exit tree
 pub fn leaf_proof(
-    prev_local_exit_tree: LocalExitTree<KeccakDigest>,
+    prev_local_exit_tree: LocalExitTree<KeccakDigest, Keccak256Hasher>,
     prev_local_exit_root: KeccakDigest,
     withdrawals: Vec<Withdrawal>,
 ) -> Result<(KeccakDigest, AggregateDeposits), LeafProofError> {
     {
-        let computed_root = prev_local_exit_tree.get_root::<Keccak256Hasher>();
+        let computed_root = prev_local_exit_tree.get_root();
 
         if computed_root != prev_local_exit_root {
             return Err(LeafProofError::InvalidLocalExitRoot {
@@ -75,7 +75,7 @@ pub fn leaf_proof(
     let mut aggregate_deposits = BTreeMap::new();
 
     for withdrawal in withdrawals {
-        new_local_exit_tree.add_leaf::<Keccak256Hasher>(withdrawal.hash());
+        new_local_exit_tree.add_leaf(withdrawal.hash());
 
         // FIXME: This incorrectly uses `Withdrawal.dest_address` as the token identifier
         let withdrawal_amount = withdrawal.amount.clone();
@@ -93,8 +93,5 @@ pub fn leaf_proof(
             ))));
     }
 
-    Ok((
-        new_local_exit_tree.get_root::<Keccak256Hasher>(),
-        AggregateDeposits::new(aggregate_deposits),
-    ))
+    Ok((new_local_exit_tree.get_root(), AggregateDeposits::new(aggregate_deposits)))
 }

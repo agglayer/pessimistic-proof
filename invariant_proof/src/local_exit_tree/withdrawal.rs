@@ -106,9 +106,9 @@ mod tests {
             hex::encode(leaf_hash)
         );
 
-        let mut dm = LocalExitTree::<KeccakDigest>::new();
-        dm.add_leaf::<Keccak256Hasher>(leaf_hash);
-        let dm_root = dm.get_root::<Keccak256Hasher>();
+        let mut dm = LocalExitTree::<KeccakDigest, Keccak256Hasher>::new();
+        dm.add_leaf(leaf_hash);
+        let dm_root = dm.get_root();
         assert_eq!(
             "5ba002329b53c11a2f1dfe90b11e031771842056cf2125b43da8103c199dcd7f",
             hex::encode(dm_root)
