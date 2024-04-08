@@ -15,6 +15,21 @@ pub fn keccak256(data: &[u8]) -> KeccakDigest {
     output
 }
 
+/// Hashes the input items using a Keccak hasher with a 256-bit security level.
+pub fn keccak256_combine<'a, I>(items: I) -> KeccakDigest
+where
+    I: IntoIterator<Item = &'a [u8]>,
+{
+    let mut hasher = Keccak::v256();
+    for data in items {
+        hasher.update(data);
+    }
+
+    let mut output = [0u8; 32];
+    hasher.finalize(&mut output);
+    output
+}
+
 /// A Keccak hasher with a 256-bit security level.
 pub struct Keccak256Hasher;
 

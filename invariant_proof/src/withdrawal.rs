@@ -3,9 +3,8 @@ use std::ops::Deref;
 use num_bigint::BigInt;
 use reth_primitives::{address, revm_primitives::bitvec::view::BitViewSized, Address};
 use serde::{Deserialize, Serialize};
-use tiny_keccak::{Hasher, Keccak};
 
-use crate::local_exit_tree::hasher::keccak::keccak256;
+use crate::local_exit_tree::hasher::keccak::{keccak256, keccak256_combine};
 
 /// Address of the LXLY bridge contract on Ethereum
 const LXLY_EVM_BRIDGE_ETH_MAINNET_ADDR: Address =
@@ -362,35 +361,17 @@ impl Withdrawal {
 
     /// Returns the token address on the destination network.
     pub fn dest_token_address(&self) -> Address {
-        let salt = {
-            let mut hasher = Keccak::v256();
-            hasher.update(&self.orig_network.to_be_bytes());
-            hasher.update(self.orig_address.as_slice());
+        let salt =
+            keccak256_combine([&self.orig_network.to_be_bytes(), self.orig_address.as_slice()]);
+        let init_hash =
+            keccak256_combine([BASE_INIT_BYTECODE_WRAPPED_TOKEN.as_slice(), &self.metadata]);
 
-            let mut salt = [0u8; 32];
-            hasher.finalize(&mut salt);
-            salt
-        };
-
-        let init_hash = {
-            let mut hasher = Keccak::v256();
-            hasher.update(&BASE_INIT_BYTECODE_WRAPPED_TOKEN);
-            hasher.update(&self.metadata);
-
-            let mut init_hash = [0u8; 32];
-            hasher.finalize(&mut init_hash);
-            init_hash
-        };
-
-        let mut hasher = Keccak::v256();
-
-        hasher.update(&[0xff]);
-        hasher.update(LXLY_EVM_BRIDGE_ETH_MAINNET_ADDR.as_slice());
-        hasher.update(&salt);
-        hasher.update(&init_hash);
-
-        let mut hash_output = [0u8; 32];
-        hasher.finalize(&mut hash_output);
+        let hash_output = keccak256_combine([
+            &[0xff],
+            LXLY_EVM_BRIDGE_ETH_MAINNET_ADDR.as_slice(),
+            &salt,
+            &init_hash,
+        ]);
 
         // Hash output is 32 bytes, and we drop the first 12 bytes, so this is guaranteed to succeed
         hash_output[12..].try_into().unwrap()
@@ -398,19 +379,15 @@ impl Withdrawal {
 
     /// Hashes the [`Withdrawal`] to be inserted in a [`crate::local_exit_tree::LocalExitTree`].
     pub fn hash(&self) -> [u8; 32] {
-        let mut hasher = Keccak::v256();
-
-        hasher.update(self.leaf_type.as_raw_slice());
-        hasher.update(&u32::to_be_bytes(self.orig_network.into()));
-        hasher.update(self.orig_address.as_slice());
-        hasher.update(&u32::to_be_bytes(self.dest_network.into()));
-        hasher.update(self.dest_address.as_slice());
-        hasher.update(&self.amount_as_bytes());
-        hasher.update(&keccak256(&self.metadata));
-
-        let mut output = [0u8; 32];
-        hasher.finalize(&mut output);
-        output
+        keccak256_combine([
+            self.leaf_type.as_raw_slice(),
+            &u32::to_be_bytes(self.orig_network.into()),
+            self.orig_address.as_slice(),
+            &u32::to_be_bytes(self.dest_network.into()),
+            self.dest_address.as_slice(),
+            &self.amount_as_bytes(),
+            &keccak256(&self.metadata),
+        ])
     }
 
     /// Prepares the `amount` field for hashing
