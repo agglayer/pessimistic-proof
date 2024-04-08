@@ -1,7 +1,8 @@
 use rs_merkle::{Hasher as MerkleHasher, MerkleTree};
 use tiny_keccak::{Hasher as _, Keccak};
 
-use super::{hasher::keccak::Keccak256Hasher, *};
+use super::*;
+use crate::local_exit_tree::hasher::Keccak256Hasher;
 
 #[test]
 fn test_local_exit_tree_basic() {

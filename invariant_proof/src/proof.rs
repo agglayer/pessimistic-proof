@@ -6,10 +6,8 @@ use serde::{Deserialize, Serialize};
 use tiny_keccak::{Hasher, Keccak};
 
 use crate::{
-    local_exit_tree::{
-        hasher::keccak::{Keccak256Hasher, KeccakDigest},
-        LocalExitTree,
-    },
+    keccak::KeccakDigest,
+    local_exit_tree::{hasher::Keccak256Hasher, LocalExitTree},
     withdrawal::NetworkId,
     Withdrawal,
 };

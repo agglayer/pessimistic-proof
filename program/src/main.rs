@@ -1,11 +1,9 @@
 #![no_main]
 
 use poly_invariant_proof::{
+    keccak::KeccakDigest,
     leaf_proof,
-    local_exit_tree::{
-        hasher::keccak::{Keccak256Hasher, KeccakDigest},
-        LocalExitTree,
-    },
+    local_exit_tree::{hasher::Keccak256Hasher, LocalExitTree},
     Withdrawal,
 };
 

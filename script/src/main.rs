@@ -1,10 +1,8 @@
 use std::time::Instant;
 
 use poly_invariant_proof::{
-    local_exit_tree::{
-        hasher::keccak::{Keccak256Hasher, KeccakDigest},
-        LocalExitTree,
-    },
+    keccak::KeccakDigest,
+    local_exit_tree::{hasher::Keccak256Hasher, LocalExitTree},
     Withdrawal,
 };
 use reth_primitives::address;

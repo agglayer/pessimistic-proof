@@ -4,7 +4,7 @@ use num_bigint::BigInt;
 use reth_primitives::{address, revm_primitives::bitvec::view::BitViewSized, Address};
 use serde::{Deserialize, Serialize};
 
-use crate::local_exit_tree::hasher::keccak::{keccak256, keccak256_combine};
+use crate::keccak::{keccak256, keccak256_combine};
 
 /// Address of the LXLY bridge contract on Ethereum
 const LXLY_EVM_BRIDGE_ETH_MAINNET_ADDR: Address =
@@ -435,10 +435,10 @@ impl Deref for NetworkId {
 
 #[cfg(test)]
 mod tests {
+    use base64::{engine::general_purpose::STANDARD, Engine};
+
     use super::*;
-    use crate::local_exit_tree::{hasher::keccak::Keccak256Hasher, LocalExitTree};
-    use base64::engine::general_purpose::STANDARD;
-    use base64::Engine;
+    use crate::local_exit_tree::{hasher::Keccak256Hasher, LocalExitTree};
 
     #[test]
     fn test_deposit_hash() {
