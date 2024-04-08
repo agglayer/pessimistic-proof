@@ -14,11 +14,11 @@ use crate::{
     Withdrawal,
 };
 
-/// Records all the deposits made in destination networks. 
+/// Records all the deposits made in destination networks.
 ///
 /// Specifically, this records a map `destination_network => (token_id => amount)`: for each
 /// network, the amount deposited for every token is recorded.
-/// 
+///
 /// Note: a "deposit" is the counterpart of a [`Withdrawal`]; a "withdrawal" from the source
 /// network is a "deposit" in the destination network.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -33,19 +33,19 @@ impl AggregateDeposits {
     /// Updates the aggregate deposits from a [`Withdrawal`] (representing a withdrawal from the
     /// source network).
     pub fn insert(&mut self, withdrawal: Withdrawal) {
-        // FIXME: This incorrectly uses `Withdrawal.dest_address` as the token identifier
         let withdrawal_amount = withdrawal.amount.clone();
+        let dest_token_address = withdrawal.dest_token_address();
 
         self.0
             .entry(withdrawal.dest_network)
             .and_modify(|network_map: &mut BTreeMap<Address, BigInt>| {
                 network_map
-                    .entry(withdrawal.dest_address)
+                    .entry(dest_token_address)
                     .and_modify(|current_amount| *current_amount += withdrawal.amount)
                     .or_insert_with(|| withdrawal_amount.clone());
             })
             .or_insert(BTreeMap::from_iter(std::iter::once((
-                withdrawal.dest_address,
+                dest_token_address,
                 withdrawal_amount,
             ))));
     }
