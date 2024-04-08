@@ -14,14 +14,43 @@ use crate::{
     Withdrawal,
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Records all the deposits made in destination networks. 
+///
+/// Specifically, this records a map `destination_network => (token_id => amount)`: for each
+/// network, the amount deposited for every token is recorded.
+/// 
+/// Note: a "deposit" is the counterpart of a [`Withdrawal`]; a "withdrawal" from the source
+/// network is a "deposit" in the destination network.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct AggregateDeposits(BTreeMap<NetworkId, BTreeMap<Address, BigInt>>);
 
 impl AggregateDeposits {
-    pub fn new(aggregate_deposits: BTreeMap<NetworkId, BTreeMap<Address, BigInt>>) -> Self {
-        Self(aggregate_deposits)
+    /// Creates a new empty [`AggregateDeposits`].
+    pub fn new() -> Self {
+        Self(BTreeMap::new())
     }
 
+    /// Updates the aggregate deposits from a [`Withdrawal`] (representing a withdrawal from the
+    /// source network).
+    pub fn insert(&mut self, withdrawal: Withdrawal) {
+        // FIXME: This incorrectly uses `Withdrawal.dest_address` as the token identifier
+        let withdrawal_amount = withdrawal.amount.clone();
+
+        self.0
+            .entry(withdrawal.dest_network)
+            .and_modify(|network_map: &mut BTreeMap<Address, BigInt>| {
+                network_map
+                    .entry(withdrawal.dest_address)
+                    .and_modify(|current_amount| *current_amount += withdrawal.amount)
+                    .or_insert_with(|| withdrawal_amount.clone());
+            })
+            .or_insert(BTreeMap::from_iter(std::iter::once((
+                withdrawal.dest_address,
+                withdrawal_amount,
+            ))));
+    }
+
+    /// Returns the hash of [`AggregateDeposits`].
     pub fn hash(&self) -> KeccakDigest {
         let mut hasher = Keccak::v256();
 
@@ -48,6 +77,7 @@ impl Deref for AggregateDeposits {
     }
 }
 
+/// Represents all errors that can occur while generating the leaf proof.
 #[derive(Debug)]
 pub enum LeafProofError {
     InvalidLocalExitRoot {
@@ -57,7 +87,7 @@ pub enum LeafProofError {
 }
 
 /// Returns the root of the local exit tree resulting from adding every withdrawal to the previous
-/// local exit tree
+/// local exit tree, as well as a record of all deposits made.
 pub fn leaf_proof(
     prev_local_exit_tree: LocalExitTree<Keccak256Hasher>,
     prev_local_exit_root: KeccakDigest,
@@ -75,26 +105,12 @@ pub fn leaf_proof(
     }
 
     let mut new_local_exit_tree = prev_local_exit_tree;
-    let mut aggregate_deposits = BTreeMap::new();
+    let mut aggregate_deposits = AggregateDeposits::new();
 
     for withdrawal in withdrawals {
         new_local_exit_tree.add_leaf(withdrawal.hash());
-
-        // FIXME: This incorrectly uses `Withdrawal.dest_address` as the token identifier
-        let withdrawal_amount = withdrawal.amount.clone();
-        aggregate_deposits
-            .entry(withdrawal.dest_network)
-            .and_modify(|network_map: &mut BTreeMap<Address, BigInt>| {
-                network_map
-                    .entry(withdrawal.dest_address)
-                    .and_modify(|current_amount| *current_amount += withdrawal.amount)
-                    .or_insert_with(|| withdrawal_amount.clone());
-            })
-            .or_insert(BTreeMap::from_iter(std::iter::once((
-                withdrawal.dest_address,
-                withdrawal_amount,
-            ))));
+        aggregate_deposits.insert(withdrawal);
     }
 
-    Ok((new_local_exit_tree.get_root(), AggregateDeposits::new(aggregate_deposits)))
+    Ok((new_local_exit_tree.get_root(), aggregate_deposits))
 }
