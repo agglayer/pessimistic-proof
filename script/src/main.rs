@@ -1,9 +1,11 @@
 use std::time::Instant;
 
-use poly_invariant_proof::local_exit_tree::{
-    hasher::keccak::{Keccak256Hasher, KeccakDigest},
-    withdrawal::Withdrawal,
-    LocalExitTree,
+use poly_invariant_proof::{
+    local_exit_tree::{
+        hasher::keccak::{Keccak256Hasher, KeccakDigest},
+        LocalExitTree,
+    },
+    Withdrawal,
 };
 use reth_primitives::address;
 use sp1_sdk::{SP1Prover, SP1Stdin, SP1Verifier};

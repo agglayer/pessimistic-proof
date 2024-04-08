@@ -5,10 +5,12 @@ use reth_primitives::Address;
 use serde::{Deserialize, Serialize};
 use tiny_keccak::{Hasher, Keccak};
 
-use crate::local_exit_tree::{
-    hasher::keccak::{Keccak256Hasher, KeccakDigest},
-    withdrawal::Withdrawal,
-    LocalExitTree,
+use crate::{
+    local_exit_tree::{
+        hasher::keccak::{Keccak256Hasher, KeccakDigest},
+        LocalExitTree,
+    },
+    Withdrawal,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

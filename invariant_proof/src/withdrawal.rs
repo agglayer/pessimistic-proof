@@ -3,7 +3,7 @@ use reth_primitives::{revm_primitives::bitvec::view::BitViewSized, Address};
 use serde::{Deserialize, Serialize};
 use tiny_keccak::{Hasher, Keccak};
 
-use super::hasher::keccak::keccak256;
+use crate::local_exit_tree::hasher::keccak::keccak256;
 
 /// Represents a token withdrawal from the network.
 #[derive(Serialize, Deserialize)]

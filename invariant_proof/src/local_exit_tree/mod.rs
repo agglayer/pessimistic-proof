@@ -4,8 +4,6 @@ use serde_with::serde_as;
 pub mod hasher;
 use hasher::Hasher;
 
-pub mod withdrawal;
-
 #[cfg(test)]
 mod tests;
 

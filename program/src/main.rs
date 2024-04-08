@@ -4,9 +4,9 @@ use poly_invariant_proof::{
     leaf_proof,
     local_exit_tree::{
         hasher::keccak::{Keccak256Hasher, KeccakDigest},
-        withdrawal::Withdrawal,
         LocalExitTree,
     },
+    Withdrawal,
 };
 
 sp1_zkvm::entrypoint!(main);
