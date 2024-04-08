@@ -10,14 +10,15 @@ use crate::{
         hasher::keccak::{Keccak256Hasher, KeccakDigest},
         LocalExitTree,
     },
+    withdrawal::NetworkId,
     Withdrawal,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AggregateDeposits(BTreeMap<u32, BTreeMap<Address, BigInt>>);
+pub struct AggregateDeposits(BTreeMap<NetworkId, BTreeMap<Address, BigInt>>);
 
 impl AggregateDeposits {
-    pub fn new(aggregate_deposits: BTreeMap<u32, BTreeMap<Address, BigInt>>) -> Self {
+    pub fn new(aggregate_deposits: BTreeMap<NetworkId, BTreeMap<Address, BigInt>>) -> Self {
         Self(aggregate_deposits)
     }
 
@@ -40,7 +41,7 @@ impl AggregateDeposits {
 }
 
 impl Deref for AggregateDeposits {
-    type Target = BTreeMap<u32, BTreeMap<Address, BigInt>>;
+    type Target = BTreeMap<NetworkId, BTreeMap<Address, BigInt>>;
 
     fn deref(&self) -> &Self::Target {
         &self.0

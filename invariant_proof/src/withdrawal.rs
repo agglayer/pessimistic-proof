@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use num_bigint::BigInt;
 use reth_primitives::{revm_primitives::bitvec::view::BitViewSized, Address};
 use serde::{Deserialize, Serialize};
@@ -10,10 +12,10 @@ use crate::local_exit_tree::hasher::keccak::keccak256;
 pub struct Withdrawal {
     pub leaf_type: u8,
 
-    pub orig_network: u32,
+    pub orig_network: NetworkId,
     pub orig_address: Address,
 
-    pub dest_network: u32,
+    pub dest_network: NetworkId,
     pub dest_address: Address,
 
     pub amount: BigInt,
@@ -25,9 +27,9 @@ impl Withdrawal {
     /// Creates a new [`Withdrawal`].
     pub fn new(
         leaf_type: u8,
-        orig_network: u32,
+        orig_network: NetworkId,
         orig_address: Address,
-        dest_network: u32,
+        dest_network: NetworkId,
         dest_address: Address,
         amount: BigInt,
         metadata: Vec<u8>,
@@ -48,9 +50,9 @@ impl Withdrawal {
         let mut hasher = Keccak::v256();
 
         hasher.update(self.leaf_type.as_raw_slice());
-        hasher.update(&u32::to_be_bytes(self.orig_network));
+        hasher.update(&u32::to_be_bytes(self.orig_network.into()));
         hasher.update(self.orig_address.as_slice());
-        hasher.update(&u32::to_be_bytes(self.dest_network));
+        hasher.update(&u32::to_be_bytes(self.dest_network.into()));
         hasher.update(self.dest_address.as_slice());
         hasher.update(&self.amount_as_bytes());
         hasher.update(&keccak256(&self.metadata));
@@ -74,6 +76,35 @@ impl Withdrawal {
     }
 }
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct NetworkId(u32);
+
+impl NetworkId {
+    pub fn new(value: u32) -> Self {
+        Self(value)
+    }
+}
+
+impl From<u32> for NetworkId {
+    fn from(value: u32) -> Self {
+        Self(value)
+    }
+}
+
+impl From<NetworkId> for u32 {
+    fn from(value: NetworkId) -> Self {
+        value.0
+    }
+}
+
+impl Deref for NetworkId {
+    type Target = u32;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -83,9 +114,9 @@ mod tests {
     fn test_deposit_hash() {
         let mut deposit = Withdrawal {
             leaf_type: 0,
-            orig_network: 0,
+            orig_network: 0.into(),
             orig_address: Address::default(),
-            dest_network: 1,
+            dest_network: 1.into(),
             dest_address: Address::default(),
             amount: BigInt::default(),
             metadata: vec![],
