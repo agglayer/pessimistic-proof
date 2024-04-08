@@ -34,7 +34,7 @@ fn main() {
             Vec::new(),
         ),
     ];
-    let initial_exit_tree: LocalExitTree<KeccakDigest, Keccak256Hasher> =
+    let initial_exit_tree: LocalExitTree<Keccak256Hasher> =
         LocalExitTree::from_leaves([[0_u8; 32], [1_u8; 32], [2_u8; 32]].into_iter());
     stdin.write(&initial_exit_tree);
     stdin.write(&initial_exit_tree.get_root());

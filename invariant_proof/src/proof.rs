@@ -56,7 +56,7 @@ pub enum LeafProofError {
 /// Returns the root of the local exit tree resulting from adding every withdrawal to the previous
 /// local exit tree
 pub fn leaf_proof(
-    prev_local_exit_tree: LocalExitTree<KeccakDigest, Keccak256Hasher>,
+    prev_local_exit_tree: LocalExitTree<Keccak256Hasher>,
     prev_local_exit_root: KeccakDigest,
     withdrawals: Vec<Withdrawal>,
 ) -> Result<(KeccakDigest, AggregateDeposits), LeafProofError> {

@@ -12,7 +12,7 @@ use poly_invariant_proof::{
 sp1_zkvm::entrypoint!(main);
 
 pub fn main() {
-    let local_exit_tree = sp1_zkvm::io::read::<LocalExitTree<KeccakDigest, Keccak256Hasher>>();
+    let local_exit_tree = sp1_zkvm::io::read::<LocalExitTree<Keccak256Hasher>>();
     let local_exit_root = sp1_zkvm::io::read::<KeccakDigest>();
     let withdrawals = sp1_zkvm::io::read::<Vec<Withdrawal>>();
 

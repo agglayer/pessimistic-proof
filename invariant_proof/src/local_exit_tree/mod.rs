@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 
@@ -14,32 +12,31 @@ mod tests;
 /// Represents a local exit tree as defined by the LxLy bridge.
 #[serde_as]
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct LocalExitTree<Digest, H, const TREE_DEPTH: usize = 32>
+pub struct LocalExitTree<H, const TREE_DEPTH: usize = 32>
 where
-    Digest: Serialize + for<'a> Deserialize<'a>,
+    H: Hasher,
+    H::Digest: Serialize + for<'a> Deserialize<'a>,
 {
     leaf_count: u32,
     #[serde_as(as = "[_; TREE_DEPTH]")]
-    frontier: [Digest; TREE_DEPTH],
-    _hasher: PhantomData<H>,
+    frontier: [H::Digest; TREE_DEPTH],
 }
 
-impl<Digest, H, const TREE_DEPTH: usize> LocalExitTree<Digest, H, TREE_DEPTH>
+impl<H, const TREE_DEPTH: usize> LocalExitTree<H, TREE_DEPTH>
 where
-    Digest: Copy + Default + Serialize + for<'a> Deserialize<'a>,
-    H: Hasher<Digest = Digest>,
+    H: Hasher,
+    H::Digest: Copy + Default + Serialize + for<'a> Deserialize<'a>,
 {
     /// Creates a new empty [`LocalExitTree`].
     pub fn new() -> Self {
         LocalExitTree {
             leaf_count: 0,
-            frontier: [Digest::default(); TREE_DEPTH],
-            _hasher: PhantomData,
+            frontier: [H::Digest::default(); TREE_DEPTH],
         }
     }
 
     /// Creates a new [`LocalExitTree`] and populates its leaves.
-    pub fn from_leaves(leaves: impl Iterator<Item = Digest>) -> Self {
+    pub fn from_leaves(leaves: impl Iterator<Item = H::Digest>) -> Self {
         let mut tree = Self::new();
 
         for leaf in leaves {
@@ -77,9 +74,9 @@ where
     }
 
     /// Computes and returns the root of the tree.
-    pub fn get_root(&self) -> Digest {
-        let mut root = Digest::default();
-        let mut empty_hash_at_height = Digest::default();
+    pub fn get_root(&self) -> H::Digest {
+        let mut root = H::Digest::default();
+        let mut empty_hash_at_height = H::Digest::default();
 
         for height in 0..TREE_DEPTH {
             if get_bit_at(self.leaf_count, height) == 1 {
@@ -95,10 +92,10 @@ where
     }
 }
 
-impl<Digest, H, const TREE_DEPTH: usize> Default for LocalExitTree<Digest, H, TREE_DEPTH>
+impl<H, const TREE_DEPTH: usize> Default for LocalExitTree<H, TREE_DEPTH>
 where
-    Digest: Copy + Default + Serialize + for<'a> Deserialize<'a>,
-    H: Hasher<Digest = Digest>,
+    H: Hasher,
+    H::Digest: Copy + Default + Serialize + for<'a> Deserialize<'a>,
 {
     fn default() -> Self {
         Self::new()

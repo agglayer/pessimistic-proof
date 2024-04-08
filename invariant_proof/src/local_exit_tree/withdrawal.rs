@@ -77,10 +77,7 @@ impl Withdrawal {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::local_exit_tree::{
-        hasher::keccak::{Keccak256Hasher, KeccakDigest},
-        LocalExitTree,
-    };
+    use crate::local_exit_tree::{hasher::keccak::Keccak256Hasher, LocalExitTree};
 
     #[test]
     fn test_deposit_hash() {
@@ -106,7 +103,7 @@ mod tests {
             hex::encode(leaf_hash)
         );
 
-        let mut dm = LocalExitTree::<KeccakDigest, Keccak256Hasher>::new();
+        let mut dm = LocalExitTree::<Keccak256Hasher>::new();
         dm.add_leaf(leaf_hash);
         let dm_root = dm.get_root();
         assert_eq!(
