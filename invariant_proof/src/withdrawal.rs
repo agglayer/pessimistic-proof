@@ -326,12 +326,17 @@ const BASE_INIT_BYTECODE_WRAPPED_TOKEN: [u8; 7014] = [
 pub struct Withdrawal {
     pub leaf_type: u8,
 
-    pub orig_network: NetworkId,
-    pub orig_address: Address,
+    /// Network which the token originates from
+    pub origin_network: NetworkId,
+    /// The address of the token on the origin network
+    pub origin_token_address: Address,
 
+    /// Network which the token is transfered to
     pub dest_network: NetworkId,
+    /// Address which will own the received token
     pub dest_address: Address,
 
+    /// Token amount sent
     pub amount: BigInt,
 
     pub metadata: Vec<u8>,
@@ -350,8 +355,8 @@ impl Withdrawal {
     ) -> Self {
         Self {
             leaf_type,
-            orig_network,
-            orig_address,
+            origin_network: orig_network,
+            origin_token_address: orig_address,
             dest_network,
             dest_address,
             amount,
@@ -361,8 +366,10 @@ impl Withdrawal {
 
     /// Returns the token address on the destination network.
     pub fn dest_token_address(&self) -> Address {
-        let salt =
-            keccak256_combine([&self.orig_network.to_be_bytes(), self.orig_address.as_slice()]);
+        let salt = keccak256_combine([
+            &self.origin_network.to_be_bytes(),
+            self.origin_token_address.as_slice(),
+        ]);
         let init_hash =
             keccak256_combine([BASE_INIT_BYTECODE_WRAPPED_TOKEN.as_slice(), &self.metadata]);
 
@@ -381,8 +388,8 @@ impl Withdrawal {
     pub fn hash(&self) -> [u8; 32] {
         keccak256_combine([
             self.leaf_type.as_raw_slice(),
-            &u32::to_be_bytes(self.orig_network.into()),
-            self.orig_address.as_slice(),
+            &u32::to_be_bytes(self.origin_network.into()),
+            self.origin_token_address.as_slice(),
             &u32::to_be_bytes(self.dest_network.into()),
             self.dest_address.as_slice(),
             &self.amount_as_bytes(),
@@ -444,8 +451,8 @@ mod tests {
     fn test_deposit_hash() {
         let mut deposit = Withdrawal {
             leaf_type: 0,
-            orig_network: 0.into(),
-            orig_address: Address::default(),
+            origin_network: 0.into(),
+            origin_token_address: Address::default(),
             dest_network: 1.into(),
             dest_address: Address::default(),
             amount: BigInt::default(),
