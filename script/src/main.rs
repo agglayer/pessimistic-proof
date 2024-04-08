@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use poly_invariant_proof::{
-    keccak::KeccakDigest,
+    keccak::Digest as KeccakDigest,
     local_exit_tree::{hasher::Keccak256Hasher, LocalExitTree},
     Withdrawal,
 };

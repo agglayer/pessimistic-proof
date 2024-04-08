@@ -1,10 +1,10 @@
 use tiny_keccak::{Hasher, Keccak};
 
 /// The output type of Keccak hashing.
-pub type KeccakDigest = [u8; 32];
+pub type Digest = [u8; 32];
 
 /// Hashes the input data using a Keccak hasher with a 256-bit security level.
-pub fn keccak256(data: &[u8]) -> KeccakDigest {
+pub fn keccak256(data: &[u8]) -> Digest {
     let mut hasher = Keccak::v256();
     hasher.update(data);
 
@@ -14,7 +14,7 @@ pub fn keccak256(data: &[u8]) -> KeccakDigest {
 }
 
 /// Hashes the input items using a Keccak hasher with a 256-bit security level.
-pub fn keccak256_combine<'a, I>(items: I) -> KeccakDigest
+pub fn keccak256_combine<'a, I>(items: I) -> Digest
 where
     I: IntoIterator<Item = &'a [u8]>,
 {

@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use tiny_keccak::{Hasher, Keccak};
 
 use crate::{
-    keccak::KeccakDigest,
+    keccak::Digest,
     local_exit_tree::{hasher::Keccak256Hasher, LocalExitTree},
     withdrawal::NetworkId,
     Withdrawal,
@@ -49,7 +49,7 @@ impl AggregateDeposits {
     }
 
     /// Returns the hash of [`AggregateDeposits`].
-    pub fn hash(&self) -> KeccakDigest {
+    pub fn hash(&self) -> Digest {
         let mut hasher = Keccak::v256();
 
         for (dest_network, token_map) in self.0.iter() {
@@ -78,19 +78,16 @@ impl Deref for AggregateDeposits {
 /// Represents all errors that can occur while generating the leaf proof.
 #[derive(Debug)]
 pub enum LeafProofError {
-    InvalidLocalExitRoot {
-        got: KeccakDigest,
-        expected: KeccakDigest,
-    },
+    InvalidLocalExitRoot { got: Digest, expected: Digest },
 }
 
 /// Returns the root of the local exit tree resulting from adding every withdrawal to the previous
 /// local exit tree, as well as a record of all deposits made.
 pub fn leaf_proof(
     prev_local_exit_tree: LocalExitTree<Keccak256Hasher>,
-    prev_local_exit_root: KeccakDigest,
+    prev_local_exit_root: Digest,
     withdrawals: Vec<Withdrawal>,
-) -> Result<(KeccakDigest, AggregateDeposits), LeafProofError> {
+) -> Result<(Digest, AggregateDeposits), LeafProofError> {
     {
         let computed_root = prev_local_exit_tree.get_root();
 

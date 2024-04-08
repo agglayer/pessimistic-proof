@@ -1,6 +1,6 @@
 use tiny_keccak::{Hasher as _, Keccak};
 
-use crate::keccak::KeccakDigest;
+use crate::keccak::Digest;
 
 /// A hasher used in constructing a [`super::LocalExitTree`].
 pub trait Hasher {
@@ -14,9 +14,9 @@ pub trait Hasher {
 pub struct Keccak256Hasher;
 
 impl Hasher for Keccak256Hasher {
-    type Digest = KeccakDigest;
+    type Digest = Digest;
 
-    fn merge(left: &KeccakDigest, right: &KeccakDigest) -> KeccakDigest {
+    fn merge(left: &Digest, right: &Digest) -> Digest {
         let mut keccak256 = Keccak::v256();
         keccak256.update(left);
         keccak256.update(right);

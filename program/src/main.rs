@@ -1,7 +1,7 @@
 #![no_main]
 
 use poly_invariant_proof::{
-    keccak::KeccakDigest,
+    keccak::Digest as KeccakDigest,
     leaf_proof,
     local_exit_tree::{hasher::Keccak256Hasher, LocalExitTree},
     Withdrawal,
