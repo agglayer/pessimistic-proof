@@ -5,4 +5,4 @@ mod proof;
 pub use proof::{leaf_proof, LeafProofError};
 
 mod withdrawal;
-pub use withdrawal::Withdrawal;
+pub use withdrawal::{TokenInfo, Withdrawal};

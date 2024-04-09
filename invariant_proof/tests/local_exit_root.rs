@@ -1,7 +1,13 @@
 use std::{fs::File, io::BufReader};
 
+use base64::{engine::general_purpose::STANDARD, Engine};
 use num_bigint::BigUint;
 use num_traits::FromPrimitive;
+use poly_invariant_proof::{
+    local_exit_tree::{hasher::Keccak256Hasher, LocalExitTree},
+    TokenInfo, Withdrawal,
+};
+use reth_primitives::Address;
 use serde::{Deserialize, Deserializer};
 use serde_json::Number;
 
@@ -9,7 +15,27 @@ const JSON_FILE_PATH: &str = "tests/data/bridge_events_10k.json";
 
 #[test]
 fn test_local_exit_root() {
+    let mut local_exit_tree: LocalExitTree<Keccak256Hasher> = LocalExitTree::new();
+
     let bridge_events: Vec<BridgeEvent> = read_sorted_bridge_events();
+
+    for event in bridge_events {
+        match event.event_data {
+            EventData::UpdateL1InfoTree {
+                mainnet_exit_root,
+                rollup_exit_root,
+            } => {
+                // do nothing
+            }
+            EventData::Deposit(deposit_event_data) => {
+                let withdrawal: Withdrawal = deposit_event_data.into();
+                local_exit_tree.add_leaf(withdrawal.hash());
+            }
+            EventData::Claim(_) => {
+                // do nothing
+            }
+        }
+    }
 }
 
 /// Reads the bridge events from disk, and sorts by (block number, tx index, log index).
@@ -58,6 +84,7 @@ enum EventData {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(unused)]
 #[serde(rename_all = "camelCase")]
 struct DepositEventData {
     leaf_type: u8,
@@ -69,6 +96,27 @@ struct DepositEventData {
     amount: BigUint,
     metadata: String,
     deposit_count: u32,
+}
+
+impl From<DepositEventData> for Withdrawal {
+    fn from(deposit_event_data: DepositEventData) -> Self {
+        Self {
+            leaf_type: deposit_event_data.leaf_type,
+            token_info: TokenInfo {
+                origin_network: deposit_event_data.origin_network.into(),
+                origin_token_address: Address::parse_checksummed(
+                    deposit_event_data.origin_address,
+                    None,
+                )
+                .unwrap(),
+            },
+            dest_network: deposit_event_data.destination_network.into(),
+            dest_address: Address::parse_checksummed(deposit_event_data.destination_address, None)
+                .unwrap(),
+            amount: deposit_event_data.amount,
+            metadata: STANDARD.decode(deposit_event_data.metadata).unwrap(),
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]
