@@ -23,9 +23,11 @@ fn test_local_exit_root() {
         match event.event_data {
             EventData::UpdateL1InfoTree {
                 mainnet_exit_root,
-                rollup_exit_root,
+                rollup_exit_root: _,
             } => {
-                // do nothing
+                let computed_root = local_exit_tree.get_root();
+
+                assert_eq!(computed_root, mainnet_exit_root);
             }
             EventData::Deposit(deposit_event_data) => {
                 let withdrawal: Withdrawal = deposit_event_data.into();
