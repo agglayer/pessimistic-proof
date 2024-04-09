@@ -19,6 +19,7 @@ fn test_local_exit_root() {
 
     let bridge_events: Vec<BridgeEvent> = read_sorted_bridge_events();
 
+    let mut deposit_count: u32 = 0;
     for event in bridge_events {
         match event.event_data {
             EventData::UpdateL1InfoTree {
@@ -30,6 +31,9 @@ fn test_local_exit_root() {
                 assert_eq!(computed_root, mainnet_exit_root);
             }
             EventData::Deposit(deposit_event_data) => {
+                assert_eq!(deposit_event_data.deposit_count, deposit_count);
+                deposit_count += 1;
+
                 let withdrawal: Withdrawal = deposit_event_data.into();
                 local_exit_tree.add_leaf(withdrawal.hash());
             }
@@ -86,7 +90,6 @@ enum EventData {
 }
 
 #[derive(Debug, Deserialize)]
-#[allow(unused)]
 #[serde(rename_all = "camelCase")]
 struct DepositEventData {
     leaf_type: u8,
