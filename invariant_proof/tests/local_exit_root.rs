@@ -9,15 +9,30 @@ const JSON_FILE_PATH: &str = "tests/data/bridge_events_10k.json";
 
 #[test]
 fn test_local_exit_root() {
-    let bridge_events: Vec<BridgeEvent> = {
-        let json_file = File::open(JSON_FILE_PATH).unwrap();
-        let reader = BufReader::new(json_file);
-
-        serde_json::from_reader(reader).unwrap()
-    };
+    let bridge_events: Vec<BridgeEvent> = read_sorted_bridge_events();
 }
 
-#[derive(Deserialize)]
+/// Reads the bridge events from disk, and sorts by (block number, tx index, log index).
+fn read_sorted_bridge_events() -> Vec<BridgeEvent> {
+    let json_file = File::open(JSON_FILE_PATH).unwrap();
+    let reader = BufReader::new(json_file);
+
+    let mut bridge_events: Vec<BridgeEvent> = serde_json::from_reader(reader).unwrap();
+    bridge_events.sort_unstable_by(|a, b| {
+        use std::cmp::Ordering;
+        match a.block_number.cmp(&b.block_number) {
+            Ordering::Equal => match a.transaction_index.cmp(&b.transaction_index) {
+                Ordering::Equal => a.log_index.cmp(&b.log_index),
+                not_eq => not_eq,
+            },
+            not_eq => not_eq,
+        }
+    });
+
+    bridge_events
+}
+
+#[derive(Debug, Deserialize)]
 struct BridgeEvent {
     removed: bool,
     block_number: u64,
@@ -28,7 +43,7 @@ struct BridgeEvent {
     event_data: EventData,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(untagged)]
 enum EventData {
     // Mainnet exit root update event
@@ -39,10 +54,10 @@ enum EventData {
     },
     // Deposit event
     Deposit(DepositEventData),
-    Claim(ClaimEventData)
+    Claim(ClaimEventData),
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct DepositEventData {
     leaf_type: u8,
@@ -56,7 +71,7 @@ struct DepositEventData {
     deposit_count: u32,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct ClaimEventData {
     #[serde(deserialize_with = "biguint_from_number")]
