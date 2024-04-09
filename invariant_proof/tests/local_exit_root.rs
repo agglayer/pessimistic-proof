@@ -1,13 +1,11 @@
 use std::{fs::File, io::BufReader};
 
 use base64::{engine::general_purpose::STANDARD, Engine};
-use num_bigint::BigUint;
-use num_traits::FromPrimitive;
 use poly_invariant_proof::{
     local_exit_tree::{hasher::Keccak256Hasher, LocalExitTree},
     TokenInfo, Withdrawal,
 };
-use reth_primitives::Address;
+use reth_primitives::{Address, U256};
 use serde::{Deserialize, Deserializer};
 use serde_json::Number;
 
@@ -64,6 +62,7 @@ fn read_sorted_bridge_events() -> Vec<BridgeEvent> {
     bridge_events
 }
 
+#[allow(unused)]
 #[derive(Debug, Deserialize)]
 struct BridgeEvent {
     removed: bool,
@@ -75,6 +74,7 @@ struct BridgeEvent {
     event_data: EventData,
 }
 
+#[allow(unused)]
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
 enum EventData {
@@ -97,8 +97,8 @@ struct DepositEventData {
     origin_address: String,
     destination_network: u32,
     destination_address: String,
-    #[serde(deserialize_with = "biguint_from_number")]
-    amount: BigUint,
+    #[serde(deserialize_with = "u256_from_number")]
+    amount: U256,
     metadata: String,
     deposit_count: u32,
 }
@@ -124,36 +124,25 @@ impl From<DepositEventData> for Withdrawal {
     }
 }
 
+#[allow(unused)]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct ClaimEventData {
-    #[serde(deserialize_with = "biguint_from_number")]
+    #[serde(deserialize_with = "u256_from_number")]
     #[serde(rename = "index")]
-    global_index: BigUint,
+    global_index: U256,
     origin_network: u32,
     origin_address: String,
     destination_address: String,
-    #[serde(deserialize_with = "biguint_from_number")]
-    amount: BigUint,
+    #[serde(deserialize_with = "u256_from_number")]
+    amount: U256,
 }
 
-// hack to properly deserialize BigUints
-fn biguint_from_number<'de, D>(deserializer: D) -> Result<BigUint, D::Error>
+fn u256_from_number<'de, D>(deserializer: D) -> Result<U256, D::Error>
 where
     D: Deserializer<'de>,
 {
     let n = Number::deserialize(deserializer)?;
-    if let Some(u) = n.as_u64() {
-        return Ok(BigUint::from(u));
-    }
-    if let Some(f) = n.as_f64() {
-        return BigUint::from_f64(f).ok_or_else(|| {
-            <D::Error as serde::de::Error>::invalid_value(
-                serde::de::Unexpected::Float(f),
-                &"a finite value",
-            )
-        });
-    }
 
-    panic!("biguint_from_number needs to be fixed")
+    Ok(U256::from_str_radix(n.as_str(), 10).unwrap())
 }

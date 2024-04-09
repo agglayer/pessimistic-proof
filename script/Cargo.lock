@@ -2155,7 +2155,6 @@ dependencies = [
  "autocfg",
  "num-integer",
  "num-traits",
- "serde",
 ]
 
 [[package]]
@@ -2737,7 +2736,6 @@ checksum = "db23d408679286588f4d4644f965003d056e3dd5abcaaa938116871d7ce2fee7"
 name = "poly-invariant-proof"
 version = "0.1.0"
 dependencies = [
- "num-bigint",
  "reth-primitives",
  "serde",
  "serde_with",

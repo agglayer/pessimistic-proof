@@ -1186,7 +1186,6 @@ dependencies = [
  "autocfg",
  "num-integer",
  "num-traits",
- "serde",
 ]
 
 [[package]]
@@ -1368,8 +1367,6 @@ version = "0.1.0"
 dependencies = [
  "base64 0.22.0",
  "hex",
- "num-bigint",
- "num-traits",
  "reth-primitives",
  "rs_merkle",
  "serde",

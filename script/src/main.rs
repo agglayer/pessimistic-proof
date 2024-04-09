@@ -21,7 +21,7 @@ fn main() {
             address!("a8da6bf26964af9d7eed9e03e53415d37aa96045"),
             1.into(),
             address!("b8da6bf26964af9d7eed9e03e53415d37aa96045"),
-            42_u64.into(),
+            42_u64.try_into().unwrap(),
             Vec::new(),
         ),
         Withdrawal::new(
@@ -30,7 +30,7 @@ fn main() {
             address!("c8da6bf26964af9d7eed9e03e53415d37aa96045"),
             0.into(),
             address!("d8da6bf26964af9d7eed9e03e53415d37aa96045"),
-            101_u64.into(),
+            101_u64.try_into().unwrap(),
             Vec::new(),
         ),
     ];

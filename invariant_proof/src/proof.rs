@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, ops::Deref};
 
-use num_bigint::BigUint;
+use reth_primitives::U256;
 use serde::{Deserialize, Serialize};
 use tiny_keccak::{Hasher, Keccak};
 
@@ -19,7 +19,7 @@ use crate::{
 /// Note: a "deposit" is the counterpart of a [`Withdrawal`]; a "withdrawal" from the source
 /// network is a "deposit" in the destination network.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct AggregateDeposits(BTreeMap<NetworkId, BTreeMap<TokenInfo, BigUint>>);
+pub struct AggregateDeposits(BTreeMap<NetworkId, BTreeMap<TokenInfo, U256>>);
 
 impl AggregateDeposits {
     /// Creates a new empty [`AggregateDeposits`].
@@ -30,19 +30,18 @@ impl AggregateDeposits {
     /// Updates the aggregate deposits from a [`Withdrawal`] (representing a withdrawal from the
     /// source network).
     pub fn insert(&mut self, withdrawal: Withdrawal) {
-        let withdrawal_amount = withdrawal.amount.clone();
         let token_info = withdrawal.token_info;
 
         self.0
             .entry(withdrawal.dest_network)
-            .and_modify(|network_map: &mut BTreeMap<TokenInfo, BigUint>| {
+            .and_modify(|network_map: &mut BTreeMap<TokenInfo, U256>| {
                 network_map
                     .entry(token_info.clone())
                     .and_modify(|current_amount| *current_amount += withdrawal.amount)
-                    .or_insert_with(|| withdrawal_amount.clone());
+                    .or_insert_with(|| withdrawal.amount);
             })
             .or_insert_with(|| {
-                BTreeMap::from_iter(std::iter::once((token_info, withdrawal_amount)))
+                BTreeMap::from_iter(std::iter::once((token_info, withdrawal.amount)))
             });
     }
 
@@ -55,7 +54,7 @@ impl AggregateDeposits {
 
             for (token_info, amount) in token_map {
                 hasher.update(&token_info.hash());
-                hasher.update(&amount.to_bytes_be());
+                hasher.update(&amount.to_be_bytes::<32>());
             }
         }
 
@@ -66,7 +65,7 @@ impl AggregateDeposits {
 }
 
 impl Deref for AggregateDeposits {
-    type Target = BTreeMap<NetworkId, BTreeMap<TokenInfo, BigUint>>;
+    type Target = BTreeMap<NetworkId, BTreeMap<TokenInfo, U256>>;
 
     fn deref(&self) -> &Self::Target {
         &self.0

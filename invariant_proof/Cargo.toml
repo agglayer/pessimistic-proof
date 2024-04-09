@@ -6,7 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-num-bigint = { version = "0.4.4", features = ["serde"] }
 reth-primitives = { git = "https://github.com/sp1-patches/reth", default-features = false, branch = "sp1-reth" }
 serde = { version = "1", features = ["derive"] }
 serde_with = { version = "3" }
@@ -17,6 +16,5 @@ tiny-keccak = { git = "https://github.com/sp1-patches/tiny-keccak", branch = "pa
 [dev-dependencies]
 base64 = "0.22.0"
 hex = "0.4.3"
-num-traits = "0.2.18"
 rs_merkle = { version = "1.4", default-features = false }
 serde_json = {version = "1", features = ["arbitrary_precision"]}
