@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-use num_bigint::BigInt;
+use num_bigint::BigUint;
 use reth_primitives::{revm_primitives::bitvec::view::BitViewSized, Address};
 use serde::{Deserialize, Serialize};
 
@@ -39,7 +39,7 @@ pub struct Withdrawal {
     pub dest_address: Address,
 
     /// Token amount sent
-    pub amount: BigInt,
+    pub amount: BigUint,
 
     pub metadata: Vec<u8>,
 }
@@ -52,7 +52,7 @@ impl Withdrawal {
         origin_token_address: Address,
         dest_network: NetworkId,
         dest_address: Address,
-        amount: BigInt,
+        amount: BigUint,
         metadata: Vec<u8>,
     ) -> Self {
         Self {
@@ -84,7 +84,7 @@ impl Withdrawal {
     /// Prepares the `amount` field for hashing
     fn amount_as_bytes(&self) -> [u8; 32] {
         // FIXME: Ideally, we'd avoid using the heap for this calculation
-        let mut amount_bytes = self.amount.to_signed_bytes_be();
+        let mut amount_bytes = self.amount.to_bytes_be();
         let padding_length = 32 - amount_bytes.len();
 
         let mut output = Vec::with_capacity(32);
@@ -137,12 +137,12 @@ mod tests {
             Address::default(),
             1.into(),
             Address::default(),
-            BigInt::default(),
+            BigUint::default(),
             vec![],
         );
 
         let amount_bytes = hex::decode("8ac7230489e80000").unwrap_or_default();
-        deposit.amount = BigInt::from_signed_bytes_be(amount_bytes.as_slice());
+        deposit.amount = BigUint::from_bytes_be(amount_bytes.as_slice());
 
         let dest_addr = hex::decode("c949254d682d8c9ad5682521675b8f43b102aec4").unwrap_or_default();
         deposit.dest_address.copy_from_slice(&dest_addr);
