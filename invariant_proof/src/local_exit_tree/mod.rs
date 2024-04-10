@@ -15,6 +15,7 @@ where
     H: Hasher,
     H::Digest: Serialize + for<'a> Deserialize<'a>,
 {
+    /// The number of inserted (non-empty) leaves.
     leaf_count: u32,
     #[serde_as(as = "[_; TREE_DEPTH]")]
     frontier: [H::Digest; TREE_DEPTH],
