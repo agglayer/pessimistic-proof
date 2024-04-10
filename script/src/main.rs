@@ -45,6 +45,7 @@ fn main() {
     let prover_time = now.elapsed();
 
     // Read output.
+    let _initial_tree_root: KeccakDigest = proof.public_values.read();
     let output_root: KeccakDigest = proof.public_values.read();
     let aggregate_deposits_digest: KeccakDigest = proof.public_values.read();
     println!("new local exit root: {:?}", output_root);
