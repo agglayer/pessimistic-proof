@@ -80,7 +80,7 @@ pub enum LeafProofError {
 
 /// Returns the root of the local exit tree resulting from adding every withdrawal to the previous
 /// local exit tree, as well as a record of all deposits made.
-pub fn leaf_proof(
+pub fn generate_leaf_proof(
     prev_local_exit_tree: LocalExitTree<Keccak256Hasher>,
     prev_local_exit_root: Digest,
     withdrawals: Vec<Withdrawal>,

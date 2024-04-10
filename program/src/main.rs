@@ -1,8 +1,8 @@
 #![no_main]
 
 use poly_invariant_proof::{
+    generate_leaf_proof,
     keccak::Digest as KeccakDigest,
-    leaf_proof,
     local_exit_tree::{hasher::Keccak256Hasher, LocalExitTree},
     Withdrawal,
 };
@@ -15,7 +15,7 @@ pub fn main() {
     let withdrawals = sp1_zkvm::io::read::<Vec<Withdrawal>>();
 
     let (new_local_exit_root, aggregate_deposits) =
-        leaf_proof(local_exit_tree, local_exit_root, withdrawals).unwrap();
+        generate_leaf_proof(local_exit_tree, local_exit_root, withdrawals).unwrap();
 
     sp1_zkvm::io::commit(&new_local_exit_root);
     sp1_zkvm::io::commit(&aggregate_deposits.hash());
