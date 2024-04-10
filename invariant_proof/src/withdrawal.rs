@@ -75,21 +75,9 @@ impl Withdrawal {
             self.token_info.origin_token_address.as_slice(),
             &u32::to_be_bytes(self.dest_network.into()),
             self.dest_address.as_slice(),
-            &self.amount_as_bytes(),
+            &self.amount.to_be_bytes::<32>(),
             &keccak256(&self.metadata),
         ])
-    }
-
-    /// Prepares the `amount` field for hashing
-    fn amount_as_bytes(&self) -> [u8; 32] {
-        let amount_bytes = self.amount.to_be_bytes::<32>();
-        let padding_length = 32 - amount_bytes.len();
-
-        let mut output = Vec::with_capacity(32);
-        output.resize(padding_length, 0_u8);
-        output.extend_from_slice(&amount_bytes);
-
-        output.try_into().unwrap()
     }
 }
 
