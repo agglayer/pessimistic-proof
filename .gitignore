@@ -1,5 +1,6 @@
 target/
 .vscode/
+.idea/
 
 # Don't track the generated elf binaries
 elf/
