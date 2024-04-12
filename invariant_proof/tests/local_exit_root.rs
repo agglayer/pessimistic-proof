@@ -1,8 +1,6 @@
-use std::{fs::File, io::BufReader};
-
 use poly_invariant_proof::{
     local_exit_tree::{hasher::Keccak256Hasher, LocalExitTree},
-    test_utils::{BridgeEvent, EventData},
+    test_utils::{parse_json_file, BridgeEvent, EventData},
     Withdrawal,
 };
 const JSON_FILE_PATH: &str = "tests/data/bridge_events_10k.json";
@@ -40,10 +38,7 @@ fn test_local_exit_root() {
 
 /// Reads the bridge events from disk, and sorts by (block number, tx index, log index).
 fn read_sorted_bridge_events() -> Vec<BridgeEvent> {
-    let json_file = File::open(JSON_FILE_PATH).unwrap();
-    let reader = BufReader::new(json_file);
-
-    let mut bridge_events: Vec<BridgeEvent> = serde_json::from_reader(reader).unwrap();
+    let mut bridge_events: Vec<BridgeEvent> = parse_json_file(JSON_FILE_PATH);
     bridge_events.sort_unstable_by(|a, b| {
         use std::cmp::Ordering;
         match a.block_number.cmp(&b.block_number) {

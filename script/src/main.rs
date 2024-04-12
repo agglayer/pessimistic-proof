@@ -3,42 +3,29 @@ use std::time::Instant;
 use poly_invariant_proof::{
     keccak::Digest as KeccakDigest,
     local_exit_tree::{hasher::Keccak256Hasher, LocalExitTree},
+    test_utils::{parse_json_file, DepositEventData},
     Withdrawal,
 };
-use reth_primitives::address;
 use sp1_sdk::{SP1Prover, SP1Stdin, SP1Verifier};
 
 const ELF: &[u8] = include_bytes!("../../program/elf/riscv32im-succinct-zkvm-elf");
+const WITHDRAWALS_JSON_FILE_PATH: &str = "src/data/withdrawals.json";
 
 fn main() {
     // Generate proof.
     let mut stdin = SP1Stdin::new();
 
-    let new_withdrawals = vec![
-        Withdrawal::new(
-            0,
-            0.into(),
-            address!("a8da6bf26964af9d7eed9e03e53415d37aa96045"),
-            1.into(),
-            address!("b8da6bf26964af9d7eed9e03e53415d37aa96045"),
-            42_u64.try_into().unwrap(),
-            Vec::new(),
-        ),
-        Withdrawal::new(
-            1,
-            1.into(),
-            address!("c8da6bf26964af9d7eed9e03e53415d37aa96045"),
-            0.into(),
-            address!("d8da6bf26964af9d7eed9e03e53415d37aa96045"),
-            101_u64.try_into().unwrap(),
-            Vec::new(),
-        ),
-    ];
+    let withdrawals_batch: Vec<Withdrawal> = {
+        let deposit_event_data: Vec<DepositEventData> = parse_json_file(WITHDRAWALS_JSON_FILE_PATH);
+
+        deposit_event_data.into_iter().map(Into::into).collect()
+    };
+
     let initial_exit_tree: LocalExitTree<Keccak256Hasher> =
         LocalExitTree::from_leaves([[0_u8; 32], [1_u8; 32], [2_u8; 32]].into_iter());
     stdin.write(&initial_exit_tree);
     stdin.write(&initial_exit_tree.get_root());
-    stdin.write(&new_withdrawals);
+    stdin.write(&withdrawals_batch);
 
     let now = Instant::now();
     let mut proof = SP1Prover::prove(ELF, stdin).expect("proving failed");

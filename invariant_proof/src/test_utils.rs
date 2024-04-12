@@ -1,9 +1,21 @@
+use std::{fs::File, io::BufReader};
+
 use base64::{engine::general_purpose::STANDARD, Engine};
-use reth_primitives::{Address, U256};
+use reth_primitives::U256;
 use serde::{Deserialize, Deserializer};
 use serde_json::Number;
 
 use crate::{TokenInfo, Withdrawal};
+
+pub fn parse_json_file<T>(json_file_path: &str) -> T
+where
+    T: for<'de> Deserialize<'de>,
+{
+    let json_file = File::open(json_file_path).unwrap();
+    let reader = BufReader::new(json_file);
+
+    serde_json::from_reader(reader).unwrap()
+}
 
 #[allow(unused)]
 #[derive(Debug, Deserialize)]
@@ -52,15 +64,10 @@ impl From<DepositEventData> for Withdrawal {
             leaf_type: deposit_event_data.leaf_type,
             token_info: TokenInfo {
                 origin_network: deposit_event_data.origin_network.into(),
-                origin_token_address: Address::parse_checksummed(
-                    deposit_event_data.origin_address,
-                    None,
-                )
-                .unwrap(),
+                origin_token_address: deposit_event_data.origin_address.parse().unwrap(),
             },
             dest_network: deposit_event_data.destination_network.into(),
-            dest_address: Address::parse_checksummed(deposit_event_data.destination_address, None)
-                .unwrap(),
+            dest_address: deposit_event_data.destination_address.parse().unwrap(),
             amount: deposit_event_data.amount,
             metadata: STANDARD.decode(deposit_event_data.metadata).unwrap(),
         }
