@@ -45,6 +45,11 @@ where
         tree
     }
 
+    /// Creates a new [`LocalExitTree`] from its parts: leaf count, and frontier.
+    pub fn from_parts(leaf_count: u32, frontier: [H::Digest; TREE_DEPTH]) -> Self {
+        Self { leaf_count, frontier }
+    }
+
     /// Appends a leaf to the tree.
     pub fn add_leaf(&mut self, leaf: H::Digest) {
         // the index at which the new entry will be inserted
