@@ -1,7 +1,10 @@
 # Invariant Proof
 
-Description text
+Current guidance from Succinct for running in performance-optimized mode:
 
+``RUSTFLAGS='-C target-cpu=native -C target_feature=+avx512ifma,+avx512vl' cargo +nightly run --release``
+
+Note that as of now (4/13/2024) this fails to compile.
 
 ## License
 Copyright (c) 2024 PT Services DMCC
