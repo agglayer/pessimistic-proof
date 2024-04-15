@@ -6,7 +6,7 @@ use poly_invariant_proof::{
     test_utils::{parse_json_file, DepositEventData},
     Withdrawal,
 };
-use sp1_sdk::{SP1Prover, SP1Stdin, SP1Verifier};
+use sp1_sdk::{ProverClient, SP1Stdin};
 
 const ELF: &[u8] = include_bytes!("../../program/elf/riscv32im-succinct-zkvm-elf");
 const WITHDRAWALS_JSON_FILE_PATH: &str = "src/data/withdrawals.json";
@@ -16,6 +16,7 @@ const INITIAL_LEAF_COUNT: u32 = 1853;
 fn main() {
     // Generate proof.
     let mut stdin = SP1Stdin::new();
+    let client = ProverClient::new();
 
     let withdrawals_batch: Vec<Withdrawal> = {
         let deposit_event_data: Vec<DepositEventData> = parse_json_file(WITHDRAWALS_JSON_FILE_PATH);
@@ -65,7 +66,7 @@ fn main() {
     stdin.write(&withdrawals_batch);
 
     let now = Instant::now();
-    let mut proof = SP1Prover::prove(ELF, stdin).expect("proving failed");
+    let mut proof = client.prove(ELF, stdin).expect("proving failed");
     let prover_time = now.elapsed();
 
     // Read output.
@@ -74,7 +75,9 @@ fn main() {
     let aggregate_deposits_digest: KeccakDigest = proof.public_values.read();
     println!("aggregate deposits digest: {:?}", aggregate_deposits_digest);
 
-    if output_root == digest_from_hex("bd03ab620225bd2dbe77791aced3c995e1d1a4ba3685a72117d4dc3253f57658") {
+    if output_root
+        == digest_from_hex("bd03ab620225bd2dbe77791aced3c995e1d1a4ba3685a72117d4dc3253f57658")
+    {
         println!("Output root is as expected!");
     } else {
         println!("Oops, output root is incorrect");
@@ -82,7 +85,7 @@ fn main() {
 
     // Verify proof.
     let now = Instant::now();
-    SP1Verifier::verify(ELF, &proof).expect("verification failed");
+    client.verify(ELF, &proof).expect("verification failed");
     let verifier_time = now.elapsed();
 
     println!("successfully generated and verified proof for the program!");
