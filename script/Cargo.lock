@@ -4868,7 +4868,7 @@ checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 [[package]]
 name = "twirp"
 version = "0.3.0"
-source = "git+https://github.com/github/twirp-rs.git#202d2bb152e0f36fca7f0543a5e071f2c3ac6d07"
+source = "git+https://github.com/github/twirp-rs.git#55972e053205591d30375a4b8671d93dbab6c901"
 dependencies = [
  "async-trait",
  "axum",

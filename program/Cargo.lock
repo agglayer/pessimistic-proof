@@ -464,9 +464,9 @@ dependencies = [
 
 [[package]]
 name = "c-kzg"
-version = "0.4.2"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "94a4bc5367b6284358d2a6a6a1dc2d92ec4b86034561c3b9d3341909752fd848"
+checksum = "3130f3d8717cc02e668a896af24984d5d5d4e8bf12e278e982e0f1bd88a0f9af"
 dependencies = [
  "blst",
  "cc",
@@ -504,7 +504,7 @@ dependencies = [
 [[package]]
 name = "codecs-derive"
 version = "0.1.0-alpha.18"
-source = "git+https://github.com/sp1-patches/reth?branch=sp1-reth#3b31e8b34dcef9d34355846d9f1a803dbc4c44af"
+source = "git+https://github.com/sp1-patches/reth?branch=sp1-reth#cbe484c16960dea443ecabf2a5ae6070292e9dee"
 dependencies = [
  "convert_case 0.6.0",
  "parity-scale-codec",
@@ -1540,7 +1540,7 @@ checksum = "adad44e29e4c806119491a7f06f03de4d1af22c3a680dd47f1e6e179439d1f56"
 [[package]]
 name = "reth-codecs"
 version = "0.1.0-alpha.18"
-source = "git+https://github.com/sp1-patches/reth?branch=sp1-reth#3b31e8b34dcef9d34355846d9f1a803dbc4c44af"
+source = "git+https://github.com/sp1-patches/reth?branch=sp1-reth#cbe484c16960dea443ecabf2a5ae6070292e9dee"
 dependencies = [
  "alloy-primitives",
  "bytes",
@@ -1550,7 +1550,7 @@ dependencies = [
 [[package]]
 name = "reth-ethereum-forks"
 version = "0.1.0-alpha.18"
-source = "git+https://github.com/sp1-patches/reth?branch=sp1-reth#3b31e8b34dcef9d34355846d9f1a803dbc4c44af"
+source = "git+https://github.com/sp1-patches/reth?branch=sp1-reth#cbe484c16960dea443ecabf2a5ae6070292e9dee"
 dependencies = [
  "alloy-chains",
  "alloy-primitives",
@@ -1563,7 +1563,7 @@ dependencies = [
 [[package]]
 name = "reth-primitives"
 version = "0.1.0-alpha.18"
-source = "git+https://github.com/sp1-patches/reth?branch=sp1-reth#3b31e8b34dcef9d34355846d9f1a803dbc4c44af"
+source = "git+https://github.com/sp1-patches/reth?branch=sp1-reth#cbe484c16960dea443ecabf2a5ae6070292e9dee"
 dependencies = [
  "alloy-chains",
  "alloy-eips",
@@ -1601,7 +1601,7 @@ dependencies = [
 [[package]]
 name = "reth-rpc-types"
 version = "0.1.0-alpha.18"
-source = "git+https://github.com/sp1-patches/reth?branch=sp1-reth#3b31e8b34dcef9d34355846d9f1a803dbc4c44af"
+source = "git+https://github.com/sp1-patches/reth?branch=sp1-reth#cbe484c16960dea443ecabf2a5ae6070292e9dee"
 dependencies = [
  "alloy-primitives",
  "alloy-rlp",
@@ -1621,7 +1621,7 @@ dependencies = [
 [[package]]
 name = "revm"
 version = "5.0.0"
-source = "git+https://github.com/sp1-patches/revm.git?branch=patch-v5.0.0#c993e0d60b49e4ee97a160ac4629a4e63f2a2e69"
+source = "git+https://github.com/sp1-patches/revm.git?branch=patch-v5.0.0#02a56d03d067e9e6c67852c10cd2d4807f86ffaa"
 dependencies = [
  "auto_impl",
  "cfg-if",
@@ -1634,7 +1634,7 @@ dependencies = [
 [[package]]
 name = "revm-interpreter"
 version = "2.1.0"
-source = "git+https://github.com/sp1-patches/revm.git?branch=patch-v5.0.0#c993e0d60b49e4ee97a160ac4629a4e63f2a2e69"
+source = "git+https://github.com/sp1-patches/revm.git?branch=patch-v5.0.0#02a56d03d067e9e6c67852c10cd2d4807f86ffaa"
 dependencies = [
  "revm-primitives",
  "serde",
@@ -1643,7 +1643,7 @@ dependencies = [
 [[package]]
 name = "revm-precompile"
 version = "4.0.0"
-source = "git+https://github.com/sp1-patches/revm.git?branch=patch-v5.0.0#c993e0d60b49e4ee97a160ac4629a4e63f2a2e69"
+source = "git+https://github.com/sp1-patches/revm.git?branch=patch-v5.0.0#02a56d03d067e9e6c67852c10cd2d4807f86ffaa"
 dependencies = [
  "anyhow",
  "aurora-engine-modexp",
@@ -1661,7 +1661,7 @@ dependencies = [
 [[package]]
 name = "revm-primitives"
 version = "2.0.0"
-source = "git+https://github.com/sp1-patches/revm.git?branch=patch-v5.0.0#c993e0d60b49e4ee97a160ac4629a4e63f2a2e69"
+source = "git+https://github.com/sp1-patches/revm.git?branch=patch-v5.0.0#02a56d03d067e9e6c67852c10cd2d4807f86ffaa"
 dependencies = [
  "alloy-primitives",
  "auto_impl",
@@ -1957,7 +1957,7 @@ dependencies = [
 [[package]]
 name = "sp1-precompiles"
 version = "0.1.0"
-source = "git+https://github.com/succinctlabs/sp1.git#12c841b29f596b3949d446ea923ee60efa0350f5"
+source = "git+https://github.com/succinctlabs/sp1.git#af7fcdb31ccf282dd74255f1701437d0470ce562"
 dependencies = [
  "anyhow",
  "bincode",
@@ -1971,7 +1971,7 @@ dependencies = [
 [[package]]
 name = "sp1-zkvm"
 version = "0.1.0"
-source = "git+https://github.com/succinctlabs/sp1.git#12c841b29f596b3949d446ea923ee60efa0350f5"
+source = "git+https://github.com/succinctlabs/sp1.git#af7fcdb31ccf282dd74255f1701437d0470ce562"
 dependencies = [
  "bincode",
  "cfg-if",
