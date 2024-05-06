@@ -9,6 +9,7 @@ pub trait Hasher {
 }
 
 /// A Keccak hasher with a 256-bit security level.
+#[derive(Clone)]
 pub struct Keccak256Hasher;
 
 impl Hasher for Keccak256Hasher {
