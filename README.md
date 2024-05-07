@@ -1,7 +1,10 @@
 # Invariant Proof
 
-Description text
+Current guidance from Succinct for running in performance-optimized mode:
 
+``RUST_LOG=info RUSTFLAGS='-C target-cpu=native -C target_feature=+avx512ifma,+avx512vl --cfg curve25519_dalek_backend="simd"' cargo run --release``
+
+Note that this requires compiling and running on a avx512 enabled CPU.
 
 ## License
 Copyright (c) 2024 PT Services DMCC

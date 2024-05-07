@@ -5,8 +5,8 @@ name = "invariant-proof-script"
 edition = "2021"
 
 [dependencies]
+hex = "0.4.3"
 poly-invariant-proof = { path = "../invariant_proof" }
-reth-primitives = { git = "https://github.com/sp1-patches/reth", default-features = false, branch = "sp1-reth" }
 sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git" }
 
 [build-dependencies]
