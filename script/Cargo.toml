@@ -7,7 +7,7 @@ edition = "2021"
 [dependencies]
 hex = "0.4.3"
 poly-invariant-proof = { path = "../invariant_proof" }
-sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git" }
+sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "02c6ea6" }
 
 [build-dependencies]
-sp1-helper = { git = "https://github.com/succinctlabs/sp1.git" }
+sp1-helper = { git = "https://github.com/succinctlabs/sp1.git", rev = "02c6ea6" }
