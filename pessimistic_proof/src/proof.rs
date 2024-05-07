@@ -1,64 +1,66 @@
 use std::{
     collections::{BTreeMap, HashMap},
-    ops::Deref,
+    ops::{Deref, DerefMut},
 };
 
-use reth_primitives::U256;
 use serde::{Deserialize, Serialize};
 use tiny_keccak::{Hasher, Keccak};
 
 use crate::{
-    batch::{Batch, LocalCreditTree},
+    batch::{BalanceTree, Batch},
     keccak::Digest,
     local_exit_tree::{hasher::Keccak256Hasher, LocalExitTree},
-    withdrawal::{NetworkId, TokenInfo},
+    withdrawal::NetworkId,
     Withdrawal,
 };
 
-/// Records all the deposits made in destination networks.
+/// Records all the deposits and withdrawals for each network.
 ///
-/// Specifically, this records a map `destination_network => (token_id => amount)`: for each
-/// network, the amount deposited for every token is recorded.
+/// Specifically, this records a map `destination_network => (token_id => (credit, debit))`: for each
+/// network, the amounts withdrawn and deposited for every token are recorded.
 ///
 /// Note: a "deposit" is the counterpart of a [`Withdrawal`]; a "withdrawal" from the source
 /// network is a "deposit" in the destination network.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct AggregateDeposits(BTreeMap<NetworkId, BTreeMap<TokenInfo, U256>>);
+pub struct Aggregate(BTreeMap<NetworkId, BalanceTree>);
 
-impl AggregateDeposits {
-    /// Creates a new empty [`AggregateDeposits`].
+impl Aggregate {
+    /// Creates a new empty [`Aggregate`].
     pub fn new() -> Self {
         Self(BTreeMap::new())
     }
 
-    /// Updates the aggregate deposits from a [`Withdrawal`] (representing a withdrawal from the
-    /// source network).
-    pub fn insert(&mut self, withdrawal: Withdrawal) {
-        let token_info = withdrawal.token_info;
-
-        self.0
-            .entry(withdrawal.dest_network)
-            .and_modify(|network_map: &mut BTreeMap<TokenInfo, U256>| {
-                network_map
-                    .entry(token_info.clone())
-                    .and_modify(|current_amount| *current_amount += withdrawal.amount)
-                    .or_insert_with(|| withdrawal.amount);
-            })
-            .or_insert_with(|| {
-                BTreeMap::from_iter(std::iter::once((token_info, withdrawal.amount)))
-            });
+    /// Creates a new non-empty [`Aggregate`].
+    pub fn new_with(base: BTreeMap<NetworkId, BalanceTree>) -> Self {
+        Self(base)
     }
 
-    /// Returns the hash of [`AggregateDeposits`].
+    /// Updates the aggregate deposits from a [`Withdrawal`] (representing a withdrawal from the
+    /// source network).
+    pub fn insert(&mut self, origin_network: NetworkId, withdrawal: Withdrawal) {
+        // Debit the origin network
+        self.0
+            .entry(origin_network)
+            .or_default()
+            .debit(&withdrawal.token_info, &withdrawal.amount);
+
+        // Credit the destination network
+        self.0
+            .entry(withdrawal.dest_network)
+            .or_default()
+            .credit(&withdrawal.token_info, &withdrawal.amount);
+    }
+
+    /// Returns the hash of [`Aggregate`].
     pub fn hash(&self) -> Digest {
         let mut hasher = Keccak::v256();
 
-        for (dest_network, token_map) in self.0.iter() {
+        for (dest_network, balance_tree) in self.0.iter() {
             hasher.update(&dest_network.to_be_bytes());
 
-            for (token_info, amount) in token_map {
+            for (token_info, balance) in balance_tree.balances.iter() {
                 hasher.update(&token_info.hash());
-                hasher.update(&amount.to_be_bytes::<32>());
+                hasher.update(&balance.hash());
             }
         }
 
@@ -67,24 +69,28 @@ impl AggregateDeposits {
         output
     }
 
-    /// Returns the [`LocalCreditTree`] which sums up the deposits on each token across
-    /// all networks.
-    pub fn flatten(&self) -> LocalCreditTree {
-        let mut flatten = LocalCreditTree::default();
-        for (_, token_map) in self.0.iter() {
-            for (token_info, amount) in token_map {
-                flatten.add_credit(token_info, amount);
-            }
+    /// Merge two [`Aggregate`].
+    pub fn merge(&mut self, other: &Aggregate) {
+        for (network, balance_tree) in other.0.iter() {
+            self.0
+                .entry(*network)
+                .and_modify(|bt| bt.merge(balance_tree.clone()))
+                .or_insert(balance_tree.clone());
         }
-        flatten
     }
 }
 
-impl Deref for AggregateDeposits {
-    type Target = BTreeMap<NetworkId, BTreeMap<TokenInfo, U256>>;
+impl Deref for Aggregate {
+    type Target = BTreeMap<NetworkId, BalanceTree>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl DerefMut for Aggregate {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 
@@ -97,10 +103,12 @@ pub enum LeafProofError {
 /// Returns the root of the local exit tree resulting from adding every withdrawal to the previous
 /// local exit tree, as well as a record of all deposits made.
 pub fn generate_leaf_proof(
+    origin_network: NetworkId,
+    local_balance_tree: BalanceTree,
     prev_local_exit_tree: LocalExitTree<Keccak256Hasher>,
     prev_local_exit_root: Digest,
     withdrawals: Vec<Withdrawal>,
-) -> Result<(Digest, AggregateDeposits), LeafProofError> {
+) -> Result<(Digest, Aggregate), LeafProofError> {
     {
         let computed_root = prev_local_exit_tree.get_root();
 
@@ -113,91 +121,85 @@ pub fn generate_leaf_proof(
     }
 
     let mut new_local_exit_tree = prev_local_exit_tree;
-    let mut aggregate_deposits = AggregateDeposits::new();
+
+    let mut base = BTreeMap::new();
+    base.insert(origin_network, local_balance_tree);
+    let mut aggregate = Aggregate::new_with(base);
 
     for withdrawal in withdrawals {
         new_local_exit_tree.add_leaf(withdrawal.hash());
-        aggregate_deposits.insert(withdrawal);
+        aggregate.insert(origin_network, withdrawal.clone());
     }
 
-    Ok((new_local_exit_tree.get_root(), aggregate_deposits))
+    Ok((new_local_exit_tree.get_root(), aggregate))
 }
 
 /// Represents all errors that can occur while generating the final proof.
 #[derive(Debug)]
 pub enum FinalProofError {
     UnknownToken,
-    NotEnoughBalance {
-        network: NetworkId,
-        token: TokenInfo,
-    },
+    NotEnoughBalance { debtor: Vec<NetworkId> },
 }
 
-/// Given an origin, how much was sent, to each target network, for each token.
-pub fn create_aggregated_deposits(batches: &Vec<Batch>) -> HashMap<NetworkId, AggregateDeposits> {
+// Generate the [`Aggregate`] for each Batch.
+pub fn create_aggregates(batches: &Vec<Batch>) -> HashMap<NetworkId, Aggregate> {
     // TODO: Take the exit trees from the batch
     let dummy: LocalExitTree<Keccak256Hasher> =
         LocalExitTree::from_leaves([[0_u8; 32], [1_u8; 32], [2_u8; 32]].into_iter());
     let dummy_root = dummy.get_root();
 
-    let mut aggregated_deposits: HashMap<NetworkId, AggregateDeposits> =
+    let mut aggregated_deposits: HashMap<NetworkId, Aggregate> =
         HashMap::with_capacity(batches.len());
 
     for batch in batches {
         // TODO: Handle failures
-        let (_digest, deposits) =
-            generate_leaf_proof(dummy.clone(), dummy_root, batch.withdrawals.clone())
-                .ok()
-                .unwrap();
-        aggregated_deposits.insert(batch.origin, deposits);
+        let (_digest, aggregate) = generate_leaf_proof(
+            batch.origin,
+            batch.local_balance_tree.clone(),
+            dummy.clone(),
+            dummy_root,
+            batch.withdrawals.clone(),
+        )
+        .ok()
+        .unwrap();
+        aggregated_deposits.insert(batch.origin, aggregate);
     }
 
     aggregated_deposits
 }
 
-/// Given a target, how much was received, for each token.
-pub fn create_collated_deposits(
-    aggregated_deposits: &HashMap<NetworkId, AggregateDeposits>,
-) -> HashMap<NetworkId, LocalCreditTree> {
-    let mut collated_deposits = HashMap::with_capacity(aggregated_deposits.len());
+/// Flatten the [`Aggregate`] across all batches.
+pub fn create_collation(aggregates: &HashMap<NetworkId, Aggregate>) -> Aggregate {
+    let mut collated = Aggregate::new();
 
-    for deposits in aggregated_deposits.values() {
-        for (target, token_map) in deposits.iter() {
-            for (token_info, amount) in token_map {
-                collated_deposits
-                    .entry(*target)
-                    .or_insert_with(LocalCreditTree::default)
-                    .add_credit(token_info, amount);
-            }
-        }
+    for aggregate in aggregates.values() {
+        collated.merge(aggregate);
     }
 
-    collated_deposits
+    collated
 }
 
 /// Returns the updated local balance tree for each network.
-pub fn generate_jumbo_proof(
-    batches: Vec<Batch>,
-) -> Result<HashMap<NetworkId, LocalCreditTree>, FinalProofError> {
-    let aggregated_deposits: HashMap<NetworkId, AggregateDeposits> =
-        create_aggregated_deposits(&batches);
+pub fn generate_jumbo_proof(batches: Vec<Batch>) -> Result<Aggregate, FinalProofError> {
+    let aggregates: HashMap<NetworkId, Aggregate> = create_aggregates(&batches);
+    let mut collated: Aggregate = create_collation(&aggregates);
 
-    let mut collated_deposits: HashMap<NetworkId, LocalCreditTree> =
-        create_collated_deposits(&aggregated_deposits);
-
-    let _outbound_transfers: HashMap<NetworkId, LocalCreditTree> = aggregated_deposits
+    // Detect the cheaters if any
+    let debtor = collated
         .iter()
-        .map(|(network, deposits)| (*network, deposits.flatten()))
-        .collect::<HashMap<_, _>>();
+        .filter(|(_, aggregate)| aggregate.has_debt())
+        .map(|(network, _)| network)
+        .cloned()
+        .collect::<Vec<_>>();
 
-    // Update all the local credit tree
-    for batch in batches {
-        collated_deposits
-            .entry(batch.origin)
-            .and_modify(|deposits| deposits.merge(batch.local_credit_tree));
+    if !debtor.is_empty() {
+        return Err(FinalProofError::NotEnoughBalance { debtor });
     }
 
-    // TODO: Check balances
+    // Update the balances
+    for balance_tree in collated.values_mut() {
+        balance_tree.apply_debit();
+    }
 
-    Ok(collated_deposits)
+    Ok(collated)
 }

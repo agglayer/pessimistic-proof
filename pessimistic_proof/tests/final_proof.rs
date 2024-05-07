@@ -1,6 +1,6 @@
 use poly_invariant_proof::{
-    batch::{Batch, LocalCreditTree},
-    generate_jumbo_proof, TokenInfo, Withdrawal,
+    batch::{Amount, Balance, BalanceTree, Batch},
+    generate_jumbo_proof, FinalProofError, TokenInfo, Withdrawal,
 };
 use reth_primitives::{address, U256};
 
@@ -31,14 +31,38 @@ fn test_final_proof() {
     // Prepare the data fetched from the CDK: Withdrawals + LBT
 
     // Withdrawals
-    let withdraw_0_to_1 = vec![make_tx(0, 1, &eth, 100), make_tx(0, 1, &usdc, 1000)];
-    let withdraw_1_to_0 = vec![make_tx(1, 0, &eth, 200), make_tx(1, 0, &usdc, 2000)];
+    let withdraw_0_to_1 = vec![make_tx(0, 1, &eth, 10), make_tx(0, 1, &usdc, 100)];
+    let withdraw_1_to_0 = vec![make_tx(1, 0, &eth, 20), make_tx(1, 0, &usdc, 200)];
+
+    let credit = |v: u32| Balance::new(Amount::Credit(U256::from(v)));
+
+    // Failing case
+    {
+        // Initial balances for the CDKs
+        let initial_0 =
+            BalanceTree::new(vec![(eth.clone(), credit(2)), (usdc.clone(), credit(10))]);
+        let initial_1 =
+            BalanceTree::new(vec![(eth.clone(), credit(1)), (usdc.clone(), credit(200))]);
+
+        let batches = vec![
+            Batch::new(0.into(), initial_0, withdraw_0_to_1.clone()),
+            Batch::new(1.into(), initial_1, withdraw_1_to_0.clone()),
+        ];
+
+        // Compute the jumbo proof
+        assert!(matches!(
+            generate_jumbo_proof(batches),
+            Err(FinalProofError::NotEnoughBalance { .. })
+        ));
+    }
 
     // Success case
     {
         // Initial balances for the CDKs
-        let initial_0 = LocalCreditTree::new(vec![(eth.clone(), U256::from(300))]);
-        let initial_1 = LocalCreditTree::new(vec![(eth.clone(), U256::from(200))]);
+        let initial_0 =
+            BalanceTree::new(vec![(eth.clone(), credit(12)), (usdc.clone(), credit(102))]);
+        let initial_1 =
+            BalanceTree::new(vec![(eth.clone(), credit(20)), (usdc.clone(), credit(201))]);
 
         let batches = vec![
             Batch::new(0.into(), initial_0, withdraw_0_to_1.clone()),
@@ -47,22 +71,6 @@ fn test_final_proof() {
 
         // Compute the jumbo proof
         assert!(generate_jumbo_proof(batches).is_ok());
-    }
-
-    // Failing case
-    {
-        // Initial balances for the CDKs
-        let initial_0 = LocalCreditTree::new(vec![(eth.clone(), U256::from(20))]);
-        let initial_1 = LocalCreditTree::new(vec![(eth.clone(), U256::from(5))]);
-
-        let _batches = vec![
-            Batch::new(0.into(), initial_0, withdraw_0_to_1.clone()),
-            Batch::new(1.into(), initial_1, withdraw_1_to_0.clone()),
-        ];
-
-        // TODO: Need check balance
-        // Compute the jumbo proof
-        // assert!(generate_jumbo_proof(batches).is_err());
     }
 }
 
