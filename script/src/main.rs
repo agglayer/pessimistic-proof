@@ -17,6 +17,7 @@ fn main() {
     // Generate proof.
     let mut stdin = SP1Stdin::new();
     let client = ProverClient::new();
+    let (proving_key, verifying_key) = client.setup(ELF);
 
     let withdrawals_batch: Vec<Withdrawal> = {
         let deposit_event_data: Vec<DepositEventData> = parse_json_file(WITHDRAWALS_JSON_FILE_PATH);
@@ -66,7 +67,7 @@ fn main() {
     stdin.write(&withdrawals_batch);
 
     let now = Instant::now();
-    let mut proof = client.prove(ELF, stdin).expect("proving failed");
+    let mut proof = client.prove(&proving_key, stdin).expect("proving failed");
     let prover_time = now.elapsed();
 
     // Read output.
@@ -85,7 +86,7 @@ fn main() {
 
     // Verify proof.
     let now = Instant::now();
-    client.verify(ELF, &proof).expect("verification failed");
+    client.verify(&proof, &verifying_key).expect("verification failed");
     let verifier_time = now.elapsed();
 
     println!("successfully generated and verified proof for the program!");

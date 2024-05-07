@@ -6,4 +6,4 @@ edition = "2021"
 
 [dependencies]
 poly-invariant-proof = { path = "../invariant_proof" }
-sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git" }
+sp1-zkvm = { git = "https://github.com/succinctlabs/sp1", rev = "02c6ea6" }
