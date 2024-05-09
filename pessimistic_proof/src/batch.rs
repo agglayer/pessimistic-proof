@@ -56,13 +56,6 @@ impl Balance {
         self.withdraw += amount;
     }
 
-    pub fn apply_withdraw(&mut self) {
-        debug_assert!(!self.is_negative(), "negative balance");
-
-        self.deposit -= self.withdraw;
-        self.withdraw = U256::ZERO;
-    }
-
     pub fn hash(&self) -> Digest {
         let mut hasher = Keccak::v256();
 
@@ -101,8 +94,8 @@ impl BalanceTree {
     }
 
     /// Merge with another [`BalanceTree`].
-    pub fn merge(&mut self, other: BalanceTree) {
-        for (token, balance) in other.balances.iter() {
+    pub fn merge(&mut self, other: &BTreeMap<TokenInfo, Balance>) {
+        for (token, balance) in other.iter() {
             self.deposit(token, &balance.deposit);
             self.withdraw(token, &balance.withdraw)
         }
@@ -112,12 +105,6 @@ impl BalanceTree {
     /// TODO: We may want to return the debtor (token, debt)
     pub fn has_debt(&self) -> bool {
         self.balances.iter().any(|(_, balance)| balance.is_negative())
-    }
-
-    pub fn apply_withdraw(&mut self) {
-        for balance in self.balances.values_mut() {
-            balance.apply_withdraw();
-        }
     }
 }
 

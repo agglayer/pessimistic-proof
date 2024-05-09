@@ -67,7 +67,7 @@ impl Aggregate {
         for (network, balance_tree) in other.0.iter() {
             self.0
                 .entry(*network)
-                .and_modify(|bt| bt.merge(balance_tree.clone()))
+                .and_modify(|bt| bt.merge(&balance_tree.balances))
                 .or_insert(balance_tree.clone());
         }
     }
@@ -164,23 +164,17 @@ pub fn create_collation(aggregates: &HashMap<NetworkId, Aggregate>) -> Aggregate
 /// Returns the updated local balance tree for each network.
 pub fn generate_full_proof(batches: Vec<Batch>) -> Result<Aggregate, FinalProofError> {
     let aggregates: HashMap<NetworkId, Aggregate> = create_aggregates(&batches);
-    let mut collated: Aggregate = create_collation(&aggregates);
+    let collated: Aggregate = create_collation(&aggregates);
 
     // Detect the cheaters if any
     let debtors = collated
         .iter()
         .filter(|(_, aggregate)| aggregate.has_debt())
-        .map(|(network, _)| network)
-        .cloned()
+        .map(|(network, _)| *network)
         .collect::<Vec<_>>();
 
     if !debtors.is_empty() {
         return Err(FinalProofError::NotEnoughBalance { debtors });
-    }
-
-    // Update the balances
-    for balance_tree in collated.values_mut() {
-        balance_tree.apply_withdraw();
     }
 
     Ok(collated)
