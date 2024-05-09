@@ -42,7 +42,7 @@ impl Balance {
         self.credit - self.debit
     }
 
-    /// Returns whether the balance is non negative.
+    /// Returns whether the balance is negative.
     pub fn is_negative(&self) -> bool {
         self.debit > self.credit
     }
@@ -55,7 +55,7 @@ impl Balance {
         self.debit += amount;
     }
 
-    pub fn normalize(&mut self) {
+    pub fn apply_debit(&mut self) {
         debug_assert!(!self.is_negative(), "negative balance");
 
         self.credit -= self.debit;
@@ -115,7 +115,7 @@ impl BalanceTree {
 
     pub fn apply_debit(&mut self) {
         for balance in self.balances.values_mut() {
-            balance.normalize();
+            balance.apply_debit();
         }
     }
 }

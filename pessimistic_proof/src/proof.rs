@@ -16,7 +16,7 @@ use crate::{
 
 /// Records all the deposits and withdrawals for each network.
 ///
-/// Specifically, this records a map `destination_network => (token_id => (credit, debit))`: for each
+/// Specifically, this records a map `network => (token_id => (credit, debit))`: for each
 /// network, the amounts withdrawn and deposited for every token are recorded.
 ///
 /// Note: a "deposit" is the counterpart of a [`Withdrawal`]; a "withdrawal" from the source
@@ -35,8 +35,7 @@ impl Aggregate {
         Self(base)
     }
 
-    /// Updates the aggregate deposits from a [`Withdrawal`] (representing a withdrawal from the
-    /// source network).
+    /// Updates the origin and destination network in the aggregate from a [`Withdrawal`].
     pub fn insert(&mut self, origin_network: NetworkId, withdrawal: Withdrawal) {
         // Debit the origin network
         self.0
@@ -138,7 +137,7 @@ pub fn generate_leaf_proof(
 #[derive(Debug)]
 pub enum FinalProofError {
     UnknownToken,
-    NotEnoughBalance { debtor: Vec<NetworkId> },
+    NotEnoughBalance { debtors: Vec<NetworkId> },
 }
 
 // Generate the [`Aggregate`] for each Batch.
@@ -185,15 +184,15 @@ pub fn generate_jumbo_proof(batches: Vec<Batch>) -> Result<Aggregate, FinalProof
     let mut collated: Aggregate = create_collation(&aggregates);
 
     // Detect the cheaters if any
-    let debtor = collated
+    let debtors = collated
         .iter()
         .filter(|(_, aggregate)| aggregate.has_debt())
         .map(|(network, _)| network)
         .cloned()
         .collect::<Vec<_>>();
 
-    if !debtor.is_empty() {
-        return Err(FinalProofError::NotEnoughBalance { debtor });
+    if !debtors.is_empty() {
+        return Err(FinalProofError::NotEnoughBalance { debtors });
     }
 
     // Update the balances
