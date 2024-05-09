@@ -16,7 +16,7 @@ use crate::{
 
 /// Records all the deposits and withdrawals for each network.
 ///
-/// Specifically, this records a map `network => (token_id => (credit, debit))`: for each
+/// Specifically, this records a map `network => (token_id => (deposit, withdraw))`: for each
 /// network, the amounts withdrawn and deposited for every token are recorded.
 ///
 /// Note: a "deposit" is the counterpart of a [`Withdrawal`]; a "withdrawal" from the source
@@ -37,17 +37,17 @@ impl Aggregate {
 
     /// Updates the origin and destination network in the aggregate from a [`Withdrawal`].
     pub fn insert(&mut self, origin_network: NetworkId, withdrawal: Withdrawal) {
-        // Debit the origin network
+        // Withdraw the origin network
         self.0
             .entry(origin_network)
             .or_default()
-            .debit(&withdrawal.token_info, &withdrawal.amount);
+            .withdraw(&withdrawal.token_info, &withdrawal.amount);
 
-        // Credit the destination network
+        // Deposit the destination network
         self.0
             .entry(withdrawal.dest_network)
             .or_default()
-            .credit(&withdrawal.token_info, &withdrawal.amount);
+            .deposit(&withdrawal.token_info, &withdrawal.amount);
     }
 
     /// Returns the hash of [`Aggregate`].
@@ -197,7 +197,7 @@ pub fn generate_jumbo_proof(batches: Vec<Batch>) -> Result<Aggregate, FinalProof
 
     // Update the balances
     for balance_tree in collated.values_mut() {
-        balance_tree.apply_debit();
+        balance_tree.apply_withdraw();
     }
 
     Ok(collated)

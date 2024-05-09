@@ -34,15 +34,15 @@ fn test_final_proof() {
     let withdraw_0_to_1 = vec![make_tx(0, 1, &eth, 10), make_tx(0, 1, &usdc, 100)];
     let withdraw_1_to_0 = vec![make_tx(1, 0, &eth, 20), make_tx(1, 0, &usdc, 200)];
 
-    let credit = |v: u32| Balance::new(Amount::Credit(U256::from(v)));
+    let deposit = |v: u32| Balance::new(Amount::Deposit(U256::from(v)));
 
     // Failing case
     {
         // Initial balances for the CDKs
         let initial_0 =
-            BalanceTree::new(vec![(eth.clone(), credit(2)), (usdc.clone(), credit(10))]);
+            BalanceTree::new(vec![(eth.clone(), deposit(2)), (usdc.clone(), deposit(10))]);
         let initial_1 =
-            BalanceTree::new(vec![(eth.clone(), credit(1)), (usdc.clone(), credit(200))]);
+            BalanceTree::new(vec![(eth.clone(), deposit(1)), (usdc.clone(), deposit(200))]);
 
         let batches = vec![
             Batch::new(0.into(), initial_0, withdraw_0_to_1.clone()),
@@ -60,9 +60,9 @@ fn test_final_proof() {
     {
         // Initial balances for the CDKs
         let initial_0 =
-            BalanceTree::new(vec![(eth.clone(), credit(12)), (usdc.clone(), credit(102))]);
+            BalanceTree::new(vec![(eth.clone(), deposit(12)), (usdc.clone(), deposit(102))]);
         let initial_1 =
-            BalanceTree::new(vec![(eth.clone(), credit(20)), (usdc.clone(), credit(201))]);
+            BalanceTree::new(vec![(eth.clone(), deposit(20)), (usdc.clone(), deposit(201))]);
 
         let batches = vec![
             Batch::new(0.into(), initial_0, withdraw_0_to_1.clone()),
