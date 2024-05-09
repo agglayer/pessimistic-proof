@@ -3,7 +3,6 @@ use std::collections::BTreeMap;
 use reth_primitives::U256;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
-use tiny_keccak::{Hasher, Keccak};
 
 use crate::{
     keccak::Digest,
@@ -54,17 +53,6 @@ impl Balance {
 
     pub fn withdraw(&mut self, amount: U256) {
         self.withdraw += amount;
-    }
-
-    pub fn hash(&self) -> Digest {
-        let mut hasher = Keccak::v256();
-
-        hasher.update(&self.deposit.to_be_bytes::<32>());
-        hasher.update(&self.withdraw.to_be_bytes::<32>());
-
-        let mut output = [0u8; 32];
-        hasher.finalize(&mut output);
-        output
     }
 }
 

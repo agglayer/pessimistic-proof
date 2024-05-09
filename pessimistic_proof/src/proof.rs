@@ -4,7 +4,6 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
-use tiny_keccak::{Hasher, Keccak};
 
 use crate::{
     batch::{BalanceTree, Batch},
@@ -42,24 +41,6 @@ impl Aggregate {
             .entry(withdrawal.dest_network)
             .or_default()
             .deposit(&withdrawal.token_info, &withdrawal.amount);
-    }
-
-    /// Returns the hash of [`Aggregate`].
-    pub fn hash(&self) -> Digest {
-        let mut hasher = Keccak::v256();
-
-        for (dest_network, balance_tree) in self.0.iter() {
-            hasher.update(&dest_network.to_be_bytes());
-
-            for (token_info, balance) in balance_tree.balances.iter() {
-                hasher.update(&token_info.hash());
-                hasher.update(&balance.hash());
-            }
-        }
-
-        let mut output = [0u8; 32];
-        hasher.finalize(&mut output);
-        output
     }
 
     /// Merge two [`Aggregate`].
