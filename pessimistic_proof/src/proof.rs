@@ -93,20 +93,21 @@ impl DerefMut for Aggregate {
     }
 }
 
-/// Represents all errors that can occur while generating the leaf proof.
+/// Represents all errors that can occur while generating the proof.
 #[derive(Debug)]
-pub enum LeafProofError {
+pub enum ProofError {
     InvalidLocalExitRoot { got: Digest, expected: Digest },
+    NotEnoughBalance { debtors: Vec<NetworkId> },
 }
 
 /// Returns the root of the local exit tree resulting from adding every withdrawal to the previous
-/// local exit tree, as well as a record of all deposits made.
-pub fn generate_leaf_proof(batch: Batch) -> Result<(Digest, Aggregate), LeafProofError> {
+/// local exit tree, as well as a record of all witdrawals and deposits made.
+pub fn generate_leaf_proof(batch: Batch) -> Result<(Digest, Aggregate), ProofError> {
     {
         let computed_root = batch.prev_local_exit_tree.get_root();
 
         if computed_root != batch.prev_local_exit_root {
-            return Err(LeafProofError::InvalidLocalExitRoot {
+            return Err(ProofError::InvalidLocalExitRoot {
                 got: computed_root,
                 expected: batch.prev_local_exit_root,
             });
@@ -129,32 +130,25 @@ pub fn generate_leaf_proof(batch: Batch) -> Result<(Digest, Aggregate), LeafProo
     Ok((new_local_exit_tree.get_root(), aggregate))
 }
 
-/// Represents all errors that can occur while generating the final proof.
-#[derive(Debug)]
-pub enum FinalProofError {
-    UnknownToken,
-    NotEnoughBalance { debtors: Vec<NetworkId> },
-}
-
 // Generate the [`Aggregate`] for each Batch.
-pub fn create_aggregates(batches: &Vec<Batch>) -> HashMap<NetworkId, Aggregate> {
-    let mut aggregated_deposits: HashMap<NetworkId, Aggregate> =
-        HashMap::with_capacity(batches.len());
+pub fn create_aggregates(
+    batches: &Vec<Batch>,
+) -> Result<HashMap<NetworkId, (Digest, Aggregate)>, ProofError> {
+    let mut aggregates = HashMap::with_capacity(batches.len());
 
     for batch in batches {
-        // TODO: Handle failures
-        let (_digest, aggregate) = generate_leaf_proof(batch.clone()).ok().unwrap();
-        aggregated_deposits.insert(batch.origin_network, aggregate);
+        let (digest, aggregate) = generate_leaf_proof(batch.clone())?;
+        aggregates.insert(batch.origin_network, (digest, aggregate));
     }
 
-    aggregated_deposits
+    Ok(aggregates)
 }
 
 /// Flatten the [`Aggregate`] across all batches.
-pub fn create_collation(aggregates: &HashMap<NetworkId, Aggregate>) -> Aggregate {
+pub fn create_collation(aggregates: &HashMap<NetworkId, (Digest, Aggregate)>) -> Aggregate {
     let mut collated = Aggregate::new();
 
-    for aggregate in aggregates.values() {
+    for (_digest, aggregate) in aggregates.values() {
         collated.merge(aggregate);
     }
 
@@ -162,8 +156,8 @@ pub fn create_collation(aggregates: &HashMap<NetworkId, Aggregate>) -> Aggregate
 }
 
 /// Returns the updated local balance tree for each network.
-pub fn generate_full_proof(batches: Vec<Batch>) -> Result<Aggregate, FinalProofError> {
-    let aggregates: HashMap<NetworkId, Aggregate> = create_aggregates(&batches);
+pub fn generate_full_proof(batches: Vec<Batch>) -> Result<Aggregate, ProofError> {
+    let aggregates: HashMap<NetworkId, (Digest, Aggregate)> = create_aggregates(&batches)?;
     let collated: Aggregate = create_collation(&aggregates);
 
     // Detect the cheaters if any
@@ -174,7 +168,7 @@ pub fn generate_full_proof(batches: Vec<Batch>) -> Result<Aggregate, FinalProofE
         .collect::<Vec<_>>();
 
     if !debtors.is_empty() {
-        return Err(FinalProofError::NotEnoughBalance { debtors });
+        return Err(ProofError::NotEnoughBalance { debtors });
     }
 
     Ok(collated)

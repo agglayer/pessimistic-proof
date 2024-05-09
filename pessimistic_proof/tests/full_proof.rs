@@ -2,7 +2,7 @@ use poly_pessimistic_proof::{
     batch::{Amount, Balance, BalanceTree, Batch},
     generate_full_proof,
     local_exit_tree::{hasher::Keccak256Hasher, LocalExitTree},
-    FinalProofError, TokenInfo, Withdrawal,
+    ProofError, TokenInfo, Withdrawal,
 };
 use reth_primitives::{address, U256};
 
@@ -68,10 +68,7 @@ fn test_full_proof() {
         ];
 
         // Compute the full proof
-        assert!(matches!(
-            generate_full_proof(batches),
-            Err(FinalProofError::NotEnoughBalance { .. })
-        ));
+        assert!(matches!(generate_full_proof(batches), Err(ProofError::NotEnoughBalance { .. })));
     }
 
     // Success case
