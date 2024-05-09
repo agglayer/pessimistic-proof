@@ -1,6 +1,6 @@
-use poly_invariant_proof::{
+use poly_pessimistic_proof::{
     batch::{Amount, Balance, BalanceTree, Batch},
-    generate_jumbo_proof, FinalProofError, TokenInfo, Withdrawal,
+    generate_full_proof, FinalProofError, TokenInfo, Withdrawal,
 };
 use reth_primitives::{address, U256};
 
@@ -17,7 +17,7 @@ fn make_tx(_from: u32, to: u32, token: &TokenInfo, amount: u32) -> Withdrawal {
 }
 
 #[test]
-fn test_final_proof() {
+fn test_full_proof() {
     let eth = TokenInfo {
         origin_network: 0.into(),
         origin_token_address: address!("0000000000000000000000000000000000000000"),
@@ -49,9 +49,9 @@ fn test_final_proof() {
             Batch::new(1.into(), initial_1, withdraw_1_to_0.clone()),
         ];
 
-        // Compute the jumbo proof
+        // Compute the full proof
         assert!(matches!(
-            generate_jumbo_proof(batches),
+            generate_full_proof(batches),
             Err(FinalProofError::NotEnoughBalance { .. })
         ));
     }
@@ -69,13 +69,13 @@ fn test_final_proof() {
             Batch::new(1.into(), initial_1, withdraw_1_to_0.clone()),
         ];
 
-        // Compute the jumbo proof
-        assert!(generate_jumbo_proof(batches).is_ok());
+        // Compute the full proof
+        assert!(generate_full_proof(batches).is_ok());
     }
 }
 
 #[test]
 #[ignore = "not implemented yet"]
-fn test_final_proof_mainnet_data() {
+fn test_full_proof_mainnet_data() {
     // from data fetched from mainnet
 }

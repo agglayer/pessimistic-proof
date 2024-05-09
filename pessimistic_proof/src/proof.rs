@@ -179,7 +179,7 @@ pub fn create_collation(aggregates: &HashMap<NetworkId, Aggregate>) -> Aggregate
 }
 
 /// Returns the updated local balance tree for each network.
-pub fn generate_jumbo_proof(batches: Vec<Batch>) -> Result<Aggregate, FinalProofError> {
+pub fn generate_full_proof(batches: Vec<Batch>) -> Result<Aggregate, FinalProofError> {
     let aggregates: HashMap<NetworkId, Aggregate> = create_aggregates(&batches);
     let mut collated: Aggregate = create_collation(&aggregates);
 
