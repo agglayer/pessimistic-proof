@@ -7,6 +7,7 @@ use tiny_keccak::{Hasher, Keccak};
 
 use crate::{
     keccak::Digest,
+    local_exit_tree::{hasher::Keccak256Hasher, LocalExitTree},
     withdrawal::{NetworkId, TokenInfo},
     Withdrawal,
 };
@@ -124,24 +125,32 @@ impl BalanceTree {
 #[serde_as]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Batch {
-    /// Origin network
-    pub(crate) origin: NetworkId,
-    /// Initial state considered for the batch
-    pub(crate) local_balance_tree: BalanceTree,
-    /// Set of withdrawals for the batch
+    /// Origin network which emitted this batch
+    pub(crate) origin_network: NetworkId,
+    /// Initial local exit tree
+    pub(crate) prev_local_exit_tree: LocalExitTree<Keccak256Hasher>,
+    /// Initial local exit root
+    pub(crate) prev_local_exit_root: Digest,
+    /// Initial balance tree
+    pub(crate) prev_local_balance_tree: BalanceTree,
+    /// Set of withdrawals
     pub(crate) withdrawals: Vec<Withdrawal>,
 }
 
 impl Batch {
     /// Creates a new [`Batch`].
     pub fn new(
-        origin: NetworkId,
-        initial_balance: BalanceTree,
+        origin_network: NetworkId,
+        prev_local_exit_tree: LocalExitTree<Keccak256Hasher>,
+        prev_local_exit_root: Digest,
+        prev_local_balance_tree: BalanceTree,
         withdrawals: Vec<Withdrawal>,
     ) -> Self {
         Self {
-            origin,
-            local_balance_tree: initial_balance,
+            origin_network,
+            prev_local_exit_tree,
+            prev_local_exit_root,
+            prev_local_balance_tree,
             withdrawals,
         }
     }

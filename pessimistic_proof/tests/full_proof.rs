@@ -1,6 +1,8 @@
 use poly_pessimistic_proof::{
     batch::{Amount, Balance, BalanceTree, Batch},
-    generate_full_proof, FinalProofError, TokenInfo, Withdrawal,
+    generate_full_proof,
+    local_exit_tree::{hasher::Keccak256Hasher, LocalExitTree},
+    FinalProofError, TokenInfo, Withdrawal,
 };
 use reth_primitives::{address, U256};
 
@@ -28,6 +30,10 @@ fn test_full_proof() {
         origin_token_address: address!("a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"),
     };
 
+    let dummy: LocalExitTree<Keccak256Hasher> =
+        LocalExitTree::from_leaves([[0_u8; 32], [1_u8; 32], [2_u8; 32]].into_iter());
+    let dummy_root = dummy.get_root();
+
     // Prepare the data fetched from the CDK: Withdrawals + LBT
 
     // Withdrawals
@@ -45,8 +51,20 @@ fn test_full_proof() {
             BalanceTree::new(vec![(eth.clone(), deposit(1)), (usdc.clone(), deposit(200))]);
 
         let batches = vec![
-            Batch::new(0.into(), initial_0, withdraw_0_to_1.clone()),
-            Batch::new(1.into(), initial_1, withdraw_1_to_0.clone()),
+            Batch::new(
+                0.into(),
+                dummy.clone(),
+                dummy_root.clone(),
+                initial_0,
+                withdraw_0_to_1.clone(),
+            ),
+            Batch::new(
+                1.into(),
+                dummy.clone(),
+                dummy_root.clone(),
+                initial_1,
+                withdraw_1_to_0.clone(),
+            ),
         ];
 
         // Compute the full proof
@@ -65,8 +83,14 @@ fn test_full_proof() {
             BalanceTree::new(vec![(eth.clone(), deposit(20)), (usdc.clone(), deposit(201))]);
 
         let batches = vec![
-            Batch::new(0.into(), initial_0, withdraw_0_to_1.clone()),
-            Batch::new(1.into(), initial_1, withdraw_1_to_0.clone()),
+            Batch::new(
+                0.into(),
+                dummy.clone(),
+                dummy_root.clone(),
+                initial_0,
+                withdraw_0_to_1.clone(),
+            ),
+            Batch::new(1.into(), dummy, dummy_root, initial_1, withdraw_1_to_0.clone()),
         ];
 
         // Compute the full proof

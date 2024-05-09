@@ -9,7 +9,6 @@ use tiny_keccak::{Hasher, Keccak};
 use crate::{
     batch::{BalanceTree, Batch},
     keccak::Digest,
-    local_exit_tree::{hasher::Keccak256Hasher, LocalExitTree},
     withdrawal::NetworkId,
     Withdrawal,
 };
@@ -28,11 +27,6 @@ impl Aggregate {
     /// Creates a new empty [`Aggregate`].
     pub fn new() -> Self {
         Self(BTreeMap::new())
-    }
-
-    /// Creates a new non-empty [`Aggregate`].
-    pub fn new_with(base: BTreeMap<NetworkId, BalanceTree>) -> Self {
-        Self(base)
     }
 
     /// Updates the origin and destination network in the aggregate from a [`Withdrawal`].
@@ -79,6 +73,12 @@ impl Aggregate {
     }
 }
 
+impl From<BTreeMap<NetworkId, BalanceTree>> for Aggregate {
+    fn from(value: BTreeMap<NetworkId, BalanceTree>) -> Self {
+        Self(value)
+    }
+}
+
 impl Deref for Aggregate {
     type Target = BTreeMap<NetworkId, BalanceTree>;
 
@@ -101,33 +101,29 @@ pub enum LeafProofError {
 
 /// Returns the root of the local exit tree resulting from adding every withdrawal to the previous
 /// local exit tree, as well as a record of all deposits made.
-pub fn generate_leaf_proof(
-    origin_network: NetworkId,
-    local_balance_tree: BalanceTree,
-    prev_local_exit_tree: LocalExitTree<Keccak256Hasher>,
-    prev_local_exit_root: Digest,
-    withdrawals: Vec<Withdrawal>,
-) -> Result<(Digest, Aggregate), LeafProofError> {
+pub fn generate_leaf_proof(batch: Batch) -> Result<(Digest, Aggregate), LeafProofError> {
     {
-        let computed_root = prev_local_exit_tree.get_root();
+        let computed_root = batch.prev_local_exit_tree.get_root();
 
-        if computed_root != prev_local_exit_root {
+        if computed_root != batch.prev_local_exit_root {
             return Err(LeafProofError::InvalidLocalExitRoot {
                 got: computed_root,
-                expected: prev_local_exit_root,
+                expected: batch.prev_local_exit_root,
             });
         }
     }
 
-    let mut new_local_exit_tree = prev_local_exit_tree;
+    let mut new_local_exit_tree = batch.prev_local_exit_tree;
 
-    let mut base = BTreeMap::new();
-    base.insert(origin_network, local_balance_tree);
-    let mut aggregate = Aggregate::new_with(base);
+    let mut aggregate: Aggregate = {
+        let base: BTreeMap<NetworkId, BalanceTree> =
+            [(batch.origin_network, batch.prev_local_balance_tree)].into();
+        base.into()
+    };
 
-    for withdrawal in withdrawals {
+    for withdrawal in batch.withdrawals {
         new_local_exit_tree.add_leaf(withdrawal.hash());
-        aggregate.insert(origin_network, withdrawal.clone());
+        aggregate.insert(batch.origin_network, withdrawal.clone());
     }
 
     Ok((new_local_exit_tree.get_root(), aggregate))
@@ -142,26 +138,13 @@ pub enum FinalProofError {
 
 // Generate the [`Aggregate`] for each Batch.
 pub fn create_aggregates(batches: &Vec<Batch>) -> HashMap<NetworkId, Aggregate> {
-    // TODO: Take the exit trees from the batch
-    let dummy: LocalExitTree<Keccak256Hasher> =
-        LocalExitTree::from_leaves([[0_u8; 32], [1_u8; 32], [2_u8; 32]].into_iter());
-    let dummy_root = dummy.get_root();
-
     let mut aggregated_deposits: HashMap<NetworkId, Aggregate> =
         HashMap::with_capacity(batches.len());
 
     for batch in batches {
         // TODO: Handle failures
-        let (_digest, aggregate) = generate_leaf_proof(
-            batch.origin,
-            batch.local_balance_tree.clone(),
-            dummy.clone(),
-            dummy_root,
-            batch.withdrawals.clone(),
-        )
-        .ok()
-        .unwrap();
-        aggregated_deposits.insert(batch.origin, aggregate);
+        let (_digest, aggregate) = generate_leaf_proof(batch.clone()).ok().unwrap();
+        aggregated_deposits.insert(batch.origin_network, aggregate);
     }
 
     aggregated_deposits
