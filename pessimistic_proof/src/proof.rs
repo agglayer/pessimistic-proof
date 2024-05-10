@@ -113,7 +113,7 @@ pub fn generate_leaf_proof(batch: Batch) -> Result<(Digest, Aggregate), ProofErr
 
 // Generate the [`Aggregate`] for each Batch.
 pub fn create_aggregates(
-    batches: &Vec<Batch>,
+    batches: &[Batch],
 ) -> Result<HashMap<NetworkId, (Digest, Aggregate)>, ProofError> {
     let mut aggregates = HashMap::with_capacity(batches.len());
 
@@ -137,14 +137,14 @@ pub fn create_collation(aggregates: &HashMap<NetworkId, (Digest, Aggregate)>) ->
 }
 
 /// Returns the updated local balance tree for each network.
-pub fn generate_full_proof(batches: Vec<Batch>) -> Result<Aggregate, ProofError> {
-    let aggregates: HashMap<NetworkId, (Digest, Aggregate)> = create_aggregates(&batches)?;
+pub fn generate_full_proof(batches: &[Batch]) -> Result<Aggregate, ProofError> {
+    let aggregates: HashMap<NetworkId, (Digest, Aggregate)> = create_aggregates(batches)?;
     let collated: Aggregate = create_collation(&aggregates);
 
     // Detect the cheaters if any
     let debtors = collated
         .iter()
-        .filter(|(_, aggregate)| aggregate.has_debt())
+        .filter(|(_, balance_tree)| balance_tree.has_debt())
         .map(|(network, _)| *network)
         .collect::<Vec<_>>();
 

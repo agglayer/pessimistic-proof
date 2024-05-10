@@ -1,5 +1,5 @@
 use poly_pessimistic_proof::{
-    batch::{Amount, Balance, BalanceTree, Batch},
+    batch::{Balance, BalanceTree, Batch, Deposit},
     generate_full_proof,
     local_exit_tree::{hasher::Keccak256Hasher, LocalExitTree},
     ProofError, TokenInfo, Withdrawal,
@@ -40,15 +40,16 @@ fn test_full_proof() {
     let withdraw_0_to_1 = vec![make_tx(0, 1, &eth, 10), make_tx(0, 1, &usdc, 100)];
     let withdraw_1_to_0 = vec![make_tx(1, 0, &eth, 20), make_tx(1, 0, &usdc, 200)];
 
-    let deposit = |v: u32| Balance::new(Amount::Deposit(U256::from(v)));
+    let deposit_eth =
+        |v: u32| -> (TokenInfo, Balance) { (eth.clone(), Deposit(U256::from(v)).into()) };
+    let deposit_usdc =
+        |v: u32| -> (TokenInfo, Balance) { (usdc.clone(), Deposit(U256::from(v)).into()) };
 
     // Failing case
     {
         // Initial balances for the CDKs
-        let initial_0 =
-            BalanceTree::new(vec![(eth.clone(), deposit(2)), (usdc.clone(), deposit(10))]);
-        let initial_1 =
-            BalanceTree::new(vec![(eth.clone(), deposit(1)), (usdc.clone(), deposit(200))]);
+        let initial_0 = BalanceTree::from(vec![deposit_eth(10), deposit_usdc(10)]);
+        let initial_1 = BalanceTree::from(vec![deposit_eth(1), deposit_usdc(200)]);
 
         let batches = vec![
             Batch::new(
@@ -68,16 +69,17 @@ fn test_full_proof() {
         ];
 
         // Compute the full proof
-        assert!(matches!(generate_full_proof(batches), Err(ProofError::NotEnoughBalance { .. })));
+        assert!(matches!(
+            generate_full_proof(&batches),
+            Err(ProofError::NotEnoughBalance { .. })
+        ));
     }
 
     // Success case
     {
         // Initial balances for the CDKs
-        let initial_0 =
-            BalanceTree::new(vec![(eth.clone(), deposit(12)), (usdc.clone(), deposit(102))]);
-        let initial_1 =
-            BalanceTree::new(vec![(eth.clone(), deposit(20)), (usdc.clone(), deposit(201))]);
+        let initial_0 = BalanceTree::from(vec![deposit_eth(12), deposit_usdc(102)]);
+        let initial_1 = BalanceTree::from(vec![deposit_eth(20), deposit_usdc(201)]);
 
         let batches = vec![
             Batch::new(
@@ -91,7 +93,7 @@ fn test_full_proof() {
         ];
 
         // Compute the full proof
-        assert!(generate_full_proof(batches).is_ok());
+        assert!(generate_full_proof(&batches).is_ok());
     }
 }
 

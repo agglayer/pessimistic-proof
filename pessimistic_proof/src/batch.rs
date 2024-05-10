@@ -18,25 +18,28 @@ pub struct Balance {
     withdraw: U256,
 }
 
-pub enum Amount {
-    Deposit(U256),
-    Withdraw(U256),
+pub struct Deposit(pub U256);
+pub struct Withdraw(pub U256);
+
+impl From<Deposit> for Balance {
+    fn from(v: Deposit) -> Self {
+        Self {
+            deposit: v.0,
+            withdraw: U256::ZERO,
+        }
+    }
+}
+
+impl From<Withdraw> for Balance {
+    fn from(v: Withdraw) -> Self {
+        Self {
+            deposit: U256::ZERO,
+            withdraw: v.0,
+        }
+    }
 }
 
 impl Balance {
-    pub fn new(amount: Amount) -> Self {
-        match amount {
-            Amount::Deposit(val) => Self {
-                deposit: val,
-                withdraw: U256::ZERO,
-            },
-            Amount::Withdraw(val) => Self {
-                deposit: U256::ZERO,
-                withdraw: val,
-            },
-        }
-    }
-
     /// Returns the balance.
     pub fn balance(&self) -> U256 {
         self.deposit - self.withdraw
@@ -64,13 +67,15 @@ pub struct BalanceTree {
     pub(crate) balances: BTreeMap<TokenInfo, Balance>,
 }
 
-impl BalanceTree {
-    pub fn new(initial_balance: Vec<(TokenInfo, Balance)>) -> Self {
+impl From<Vec<(TokenInfo, Balance)>> for BalanceTree {
+    fn from(initial_balance: Vec<(TokenInfo, Balance)>) -> Self {
         Self {
             balances: initial_balance.into_iter().collect(),
         }
     }
+}
 
+impl BalanceTree {
     /// Apply deposit to [`TokenInfo`].
     pub fn deposit(&mut self, token: &TokenInfo, amount: &U256) {
         self.balances.entry(token.clone()).or_default().deposit(*amount);
@@ -101,15 +106,15 @@ impl BalanceTree {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Batch {
     /// Origin network which emitted this batch
-    pub(crate) origin_network: NetworkId,
+    pub origin_network: NetworkId,
     /// Initial local exit tree
-    pub(crate) prev_local_exit_tree: LocalExitTree<Keccak256Hasher>,
+    pub prev_local_exit_tree: LocalExitTree<Keccak256Hasher>,
     /// Initial local exit root
-    pub(crate) prev_local_exit_root: Digest,
+    pub prev_local_exit_root: Digest,
     /// Initial balance tree
-    pub(crate) prev_local_balance_tree: BalanceTree,
+    pub prev_local_balance_tree: BalanceTree,
     /// Set of withdrawals
-    pub(crate) withdrawals: Vec<Withdrawal>,
+    pub withdrawals: Vec<Withdrawal>,
 }
 
 impl Batch {

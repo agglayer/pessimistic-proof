@@ -1,11 +1,13 @@
 use std::time::Instant;
 
 use poly_pessimistic_proof::{
+    batch::{Balance, BalanceTree, Batch, Deposit},
     keccak::Digest as KeccakDigest,
     local_exit_tree::{hasher::Keccak256Hasher, LocalExitTree},
     test_utils::{parse_json_file, DepositEventData},
-    Withdrawal,
+    TokenInfo, Withdrawal,
 };
+use reth_primitives::{address, U256};
 use sp1_sdk::{ProverClient, SP1Stdin};
 
 const ELF: &[u8] = include_bytes!("../../program/elf/riscv32im-succinct-zkvm-elf");
@@ -13,19 +15,14 @@ const WITHDRAWALS_JSON_FILE_PATH: &str = "src/data/withdrawals.json";
 
 const INITIAL_LEAF_COUNT: u32 = 1853;
 
-fn main() {
-    // Generate proof.
-    let mut stdin = SP1Stdin::new();
-    let client = ProverClient::new();
-    let (proving_key, verifying_key) = client.setup(ELF);
-
-    let withdrawals_batch: Vec<Withdrawal> = {
+fn make_batch() -> Batch {
+    let withdrawals: Vec<Withdrawal> = {
         let deposit_event_data: Vec<DepositEventData> = parse_json_file(WITHDRAWALS_JSON_FILE_PATH);
 
         deposit_event_data.into_iter().map(Into::into).collect()
     };
 
-    let initial_exit_tree: LocalExitTree<Keccak256Hasher> = LocalExitTree::from_parts(
+    let prev_local_exit_tree: LocalExitTree<Keccak256Hasher> = LocalExitTree::from_parts(
         INITIAL_LEAF_COUNT,
         [
             digest_from_hex("4a3c0e05a537700590e5cfa29654e7db5b36fbe85b24e7f34bdec7ed2b194aa6"),
@@ -62,19 +59,51 @@ fn main() {
             digest_from_hex("0000000000000000000000000000000000000000000000000000000000000000"),
         ],
     );
-    stdin.write(&initial_exit_tree);
-    stdin.write(&initial_exit_tree.get_root());
-    stdin.write(&withdrawals_batch);
+
+    let prev_local_balance_tree: BalanceTree = {
+        let eth = TokenInfo {
+            origin_network: 0.into(),
+            origin_token_address: address!("0000000000000000000000000000000000000000"),
+        };
+
+        let token = TokenInfo {
+            origin_network: 0.into(),
+            origin_token_address: address!("a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"),
+        };
+
+        let deposit_eth =
+            |v: u32| -> (TokenInfo, Balance) { (eth.clone(), Deposit(U256::from(v)).into()) };
+        let deposit_token =
+            |v: u32| -> (TokenInfo, Balance) { (token.clone(), Deposit(U256::from(v)).into()) };
+
+        BalanceTree::from(vec![deposit_eth(10), deposit_token(10)])
+    };
+
+    let prev_local_exit_root = prev_local_exit_tree.get_root();
+
+    Batch {
+        origin_network: 0.into(),
+        prev_local_exit_tree,
+        prev_local_exit_root,
+        prev_local_balance_tree,
+        withdrawals,
+    }
+}
+
+fn main() {
+    // Generate proof.
+    let mut stdin = SP1Stdin::new();
+    let client = ProverClient::new();
+    let (proving_key, verifying_key) = client.setup(ELF);
+
+    stdin.write(&make_batch());
 
     let now = Instant::now();
     let mut proof = client.prove(&proving_key, stdin).expect("proving failed");
     let prover_time = now.elapsed();
 
     // Read output.
-    let _initial_tree_root: KeccakDigest = proof.public_values.read();
     let output_root: KeccakDigest = proof.public_values.read();
-    let aggregate_deposits_digest: KeccakDigest = proof.public_values.read();
-    println!("aggregate deposits digest: {:?}", aggregate_deposits_digest);
 
     if output_root
         == digest_from_hex("bd03ab620225bd2dbe77791aced3c995e1d1a4ba3685a72117d4dc3253f57658")
@@ -86,7 +115,9 @@ fn main() {
 
     // Verify proof.
     let now = Instant::now();
-    client.verify(&proof, &verifying_key).expect("verification failed");
+    client
+        .verify(&proof, &verifying_key)
+        .expect("verification failed");
     let verifier_time = now.elapsed();
 
     println!("successfully generated and verified proof for the program!");
