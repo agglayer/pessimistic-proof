@@ -22,6 +22,9 @@ use crate::{
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Aggregate(BTreeMap<NetworkId, BalanceTree>);
 
+pub type ExitRoots = HashMap<NetworkId, Digest>;
+pub type BalanceRoots = HashMap<NetworkId, Digest>;
+
 impl Aggregate {
     /// Creates a new empty [`Aggregate`].
     pub fn new() -> Self {
@@ -114,22 +117,24 @@ pub fn generate_leaf_proof(batch: Batch) -> Result<(Digest, Aggregate), ProofErr
 // Generate the [`Aggregate`] for each Batch.
 pub fn create_aggregates(
     batches: &[Batch],
-) -> Result<HashMap<NetworkId, (Digest, Aggregate)>, ProofError> {
+) -> Result<(ExitRoots, HashMap<NetworkId, Aggregate>), ProofError> {
     let mut aggregates = HashMap::with_capacity(batches.len());
+    let mut exit_roots = HashMap::with_capacity(batches.len());
 
     for batch in batches {
         let (digest, aggregate) = generate_leaf_proof(batch.clone())?;
-        aggregates.insert(batch.origin_network, (digest, aggregate));
+        aggregates.insert(batch.origin_network, aggregate);
+        exit_roots.insert(batch.origin_network, digest);
     }
 
-    Ok(aggregates)
+    Ok((exit_roots, aggregates))
 }
 
 /// Flatten the [`Aggregate`] across all batches.
-pub fn create_collation(aggregates: &HashMap<NetworkId, (Digest, Aggregate)>) -> Aggregate {
+pub fn create_collation(aggregates: &HashMap<NetworkId, Aggregate>) -> Aggregate {
     let mut collated = Aggregate::new();
 
-    for (_digest, aggregate) in aggregates.values() {
+    for aggregate in aggregates.values() {
         collated.merge(aggregate);
     }
 
@@ -137,8 +142,8 @@ pub fn create_collation(aggregates: &HashMap<NetworkId, (Digest, Aggregate)>) ->
 }
 
 /// Returns the updated local balance tree for each network.
-pub fn generate_full_proof(batches: &[Batch]) -> Result<Aggregate, ProofError> {
-    let aggregates: HashMap<NetworkId, (Digest, Aggregate)> = create_aggregates(batches)?;
+pub fn generate_full_proof(batches: &[Batch]) -> Result<(ExitRoots, BalanceRoots), ProofError> {
+    let (exit_roots, aggregates) = create_aggregates(batches)?;
     let collated: Aggregate = create_collation(&aggregates);
 
     // Detect the cheaters if any
@@ -152,5 +157,10 @@ pub fn generate_full_proof(batches: &[Batch]) -> Result<Aggregate, ProofError> {
         return Err(ProofError::NotEnoughBalance { debtors });
     }
 
-    Ok(collated)
+    let balance_tree_roots = collated
+        .iter()
+        .map(|(network, balance_tree)| (*network, balance_tree.hash()))
+        .collect();
+
+    Ok((exit_roots, balance_tree_roots))
 }
