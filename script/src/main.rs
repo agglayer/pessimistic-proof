@@ -1,11 +1,11 @@
-use std::time::Instant;
+use std::{collections::HashMap, time::Instant};
 
 use poly_pessimistic_proof::{
     batch::{Balance, BalanceTree, Batch, Deposit},
     keccak::Digest as KeccakDigest,
     local_exit_tree::{hasher::Keccak256Hasher, LocalExitTree},
     test_utils::{parse_json_file, DepositEventData},
-    TokenInfo, Withdrawal,
+    NetworkId, TokenInfo, Withdrawal,
 };
 use reth_primitives::{address, U256};
 use sp1_sdk::{ProverClient, SP1Stdin};
@@ -15,7 +15,7 @@ const WITHDRAWALS_JSON_FILE_PATH: &str = "src/data/withdrawals.json";
 
 const INITIAL_LEAF_COUNT: u32 = 1853;
 
-fn make_batch() -> Batch {
+fn make_batch(origin_network: NetworkId) -> Batch {
     let withdrawals: Vec<Withdrawal> = {
         let deposit_event_data: Vec<DepositEventData> = parse_json_file(WITHDRAWALS_JSON_FILE_PATH);
 
@@ -62,12 +62,12 @@ fn make_batch() -> Batch {
 
     let prev_local_balance_tree: BalanceTree = {
         let eth = TokenInfo {
-            origin_network: 0.into(),
+            origin_network: origin_network.clone(),
             origin_token_address: address!("0000000000000000000000000000000000000000"),
         };
 
         let token = TokenInfo {
-            origin_network: 0.into(),
+            origin_network: origin_network.clone(),
             origin_token_address: address!("a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"),
         };
 
@@ -81,7 +81,7 @@ fn make_batch() -> Batch {
     let prev_local_exit_root = prev_local_exit_tree.get_root();
 
     Batch {
-        origin_network: 0.into(),
+        origin_network,
         prev_local_exit_tree,
         prev_local_exit_root,
         prev_local_balance_tree,
@@ -95,7 +95,9 @@ fn main() {
     let client = ProverClient::new();
     let (proving_key, verifying_key) = client.setup(ELF);
 
-    let batches = vec![make_batch()];
+    // Make a single batch from network 0.
+    let origin_network: NetworkId = 0.into();
+    let batches = vec![make_batch(origin_network)];
     stdin.write(&batches);
 
     let now = Instant::now();
@@ -103,9 +105,10 @@ fn main() {
     let prover_time = now.elapsed();
 
     // Read output.
-    let output_root: KeccakDigest = proof.public_values.read();
+    let new_roots: HashMap<NetworkId, (KeccakDigest, KeccakDigest)> = proof.public_values.read();
+    let (exit_root, _balance_root) = new_roots.get(&origin_network).expect("unexisting");
 
-    if output_root
+    if *exit_root
         == digest_from_hex("bd03ab620225bd2dbe77791aced3c995e1d1a4ba3685a72117d4dc3253f57658")
     {
         println!("Output root is as expected!");

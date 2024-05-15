@@ -22,9 +22,6 @@ use crate::{
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Aggregate(BTreeMap<NetworkId, BalanceTree>);
 
-pub type ExitRoots = HashMap<NetworkId, Digest>;
-pub type BalanceRoots = HashMap<NetworkId, Digest>;
-
 impl Aggregate {
     /// Creates a new empty [`Aggregate`].
     pub fn new() -> Self {
@@ -86,7 +83,7 @@ pub enum ProofError {
 
 /// Returns the root of the local exit tree resulting from adding every withdrawal to the previous
 /// local exit tree, as well as a record of all witdrawals and deposits made.
-pub fn generate_leaf_proof(batch: Batch) -> Result<(Digest, Aggregate), ProofError> {
+pub fn generate_leaf_proof(batch: Batch) -> Result<(ExitRoot, Aggregate), ProofError> {
     {
         let computed_root = batch.prev_local_exit_tree.get_root();
 
@@ -117,33 +114,36 @@ pub fn generate_leaf_proof(batch: Batch) -> Result<(Digest, Aggregate), ProofErr
 // Generate the [`Aggregate`] for each Batch.
 pub fn create_aggregates(
     batches: &[Batch],
-) -> Result<(ExitRoots, HashMap<NetworkId, Aggregate>), ProofError> {
+) -> Result<HashMap<NetworkId, (ExitRoot, Aggregate)>, ProofError> {
     let mut aggregates = HashMap::with_capacity(batches.len());
-    let mut exit_roots = HashMap::with_capacity(batches.len());
 
     for batch in batches {
-        let (digest, aggregate) = generate_leaf_proof(batch.clone())?;
-        aggregates.insert(batch.origin_network, aggregate);
-        exit_roots.insert(batch.origin_network, digest);
+        let (new_exit_root, aggregate) = generate_leaf_proof(batch.clone())?;
+        aggregates.insert(batch.origin_network, (new_exit_root, aggregate));
     }
 
-    Ok((exit_roots, aggregates))
+    Ok(aggregates)
 }
 
 /// Flatten the [`Aggregate`] across all batches.
-pub fn create_collation(aggregates: &HashMap<NetworkId, Aggregate>) -> Aggregate {
+pub fn create_collation(aggregates: &HashMap<NetworkId, (ExitRoot, Aggregate)>) -> Aggregate {
     let mut collated = Aggregate::new();
 
-    for aggregate in aggregates.values() {
+    for (_exit_root, aggregate) in aggregates.values() {
         collated.merge(aggregate);
     }
 
     collated
 }
 
+pub type ExitRoot = Digest;
+pub type BalanceRoot = Digest;
+
 /// Returns the updated local balance tree for each network.
-pub fn generate_full_proof(batches: &[Batch]) -> Result<(ExitRoots, BalanceRoots), ProofError> {
-    let (exit_roots, aggregates) = create_aggregates(batches)?;
+pub fn generate_full_proof(
+    batches: &[Batch],
+) -> Result<HashMap<NetworkId, (ExitRoot, BalanceRoot)>, ProofError> {
+    let aggregates = create_aggregates(batches)?;
     let collated: Aggregate = create_collation(&aggregates);
 
     // Detect the cheaters if any
@@ -157,10 +157,14 @@ pub fn generate_full_proof(batches: &[Batch]) -> Result<(ExitRoots, BalanceRoots
         return Err(ProofError::NotEnoughBalance { debtors });
     }
 
-    let balance_tree_roots = collated
+    let new_roots: HashMap<NetworkId, (ExitRoot, BalanceRoot)> = collated
         .iter()
-        .map(|(network, balance_tree)| (*network, balance_tree.hash()))
+        .map(|(network, balance_tree)| {
+            let exit_root = aggregates.get(network).map_or(Digest::default(), |roots| roots.0);
+            let balance_root = balance_tree.hash();
+            (*network, (exit_root, balance_root))
+        })
         .collect();
 
-    Ok((exit_roots, balance_tree_roots))
+    Ok(new_roots)
 }
