@@ -11,6 +11,7 @@ use crate::{
     withdrawal::{NetworkId, TokenInfo},
     Withdrawal,
 };
+
 /// Record the balance as total deposit and total withdraw.
 #[derive(Default, Clone, Serialize, Deserialize, Debug)]
 pub struct Balance {

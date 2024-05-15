@@ -71,12 +71,11 @@ fn make_batch() -> Batch {
             origin_token_address: address!("a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"),
         };
 
-        let deposit_eth =
-            |v: u32| -> (TokenInfo, Balance) { (eth.clone(), Deposit(U256::from(v)).into()) };
-        let deposit_token =
-            |v: u32| -> (TokenInfo, Balance) { (token.clone(), Deposit(U256::from(v)).into()) };
+        let infinite_eth = || -> (TokenInfo, Balance) { (eth.clone(), Deposit(U256::MAX).into()) };
+        let infinite_token =
+            || -> (TokenInfo, Balance) { (token.clone(), Deposit(U256::MAX).into()) };
 
-        BalanceTree::from(vec![deposit_eth(10), deposit_token(10)])
+        BalanceTree::from(vec![infinite_eth(), infinite_token()])
     };
 
     let prev_local_exit_root = prev_local_exit_tree.get_root();
@@ -96,7 +95,8 @@ fn main() {
     let client = ProverClient::new();
     let (proving_key, verifying_key) = client.setup(ELF);
 
-    stdin.write(&make_batch());
+    let batches = vec![make_batch()];
+    stdin.write(&batches);
 
     let now = Instant::now();
     let mut proof = client.prove(&proving_key, stdin).expect("proving failed");
