@@ -20,10 +20,10 @@ use crate::{
 /// Note: a "deposit" is the counterpart of a [`Withdrawal`]; a "withdrawal" from the source
 /// network is a "deposit" in the destination network.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct Aggregate(BTreeMap<NetworkId, BalanceTree>);
+pub struct BalanceTreeByNetwork(BTreeMap<NetworkId, BalanceTree>);
 
-impl Aggregate {
-    /// Creates a new empty [`Aggregate`].
+impl BalanceTreeByNetwork {
+    /// Creates a new empty [`BalanceTreeByNetwork`].
     pub fn new() -> Self {
         Self(BTreeMap::new())
     }
@@ -43,8 +43,8 @@ impl Aggregate {
             .deposit(withdrawal.token_info, withdrawal.amount);
     }
 
-    /// Merge two [`Aggregate`].
-    pub fn merge(&mut self, other: &Aggregate) {
+    /// Merge two [`BalanceTreeByNetwork`].
+    pub fn merge(&mut self, other: &BalanceTreeByNetwork) {
         for (network, balance_tree) in other.0.iter() {
             self.0
                 .entry(*network)
@@ -54,13 +54,13 @@ impl Aggregate {
     }
 }
 
-impl From<BTreeMap<NetworkId, BalanceTree>> for Aggregate {
+impl From<BTreeMap<NetworkId, BalanceTree>> for BalanceTreeByNetwork {
     fn from(value: BTreeMap<NetworkId, BalanceTree>) -> Self {
         Self(value)
     }
 }
 
-impl Deref for Aggregate {
+impl Deref for BalanceTreeByNetwork {
     type Target = BTreeMap<NetworkId, BalanceTree>;
 
     fn deref(&self) -> &Self::Target {
@@ -68,7 +68,7 @@ impl Deref for Aggregate {
     }
 }
 
-impl DerefMut for Aggregate {
+impl DerefMut for BalanceTreeByNetwork {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
@@ -83,7 +83,7 @@ pub enum ProofError {
 
 /// Returns the root of the local exit tree resulting from adding every withdrawal to the previous
 /// local exit tree, as well as a record of all withdrawals and deposits made.
-pub fn get_network_aggregate(batch: Batch) -> Result<(ExitRoot, Aggregate), ProofError> {
+pub fn get_network_aggregate(batch: Batch) -> Result<(ExitRoot, BalanceTreeByNetwork), ProofError> {
     {
         let computed_root = batch.prev_local_exit_tree.get_root();
 
@@ -97,7 +97,7 @@ pub fn get_network_aggregate(batch: Batch) -> Result<(ExitRoot, Aggregate), Proo
 
     let mut new_local_exit_tree = batch.prev_local_exit_tree;
 
-    let mut aggregate: Aggregate = {
+    let mut aggregate: BalanceTreeByNetwork = {
         let base: BTreeMap<NetworkId, BalanceTree> =
             [(batch.origin_network, batch.prev_local_balance_tree)].into();
         base.into()
@@ -111,10 +111,10 @@ pub fn get_network_aggregate(batch: Batch) -> Result<(ExitRoot, Aggregate), Proo
     Ok((new_local_exit_tree.get_root(), aggregate))
 }
 
-/// Generates the [`Aggregate`] for each Batch.
-pub fn create_aggregates(
+/// Generates the [`BalanceTreeByNetwork`] for each Batch.
+pub fn generate_network_balance_trees(
     batches: &[Batch],
-) -> Result<HashMap<NetworkId, (ExitRoot, Aggregate)>, ProofError> {
+) -> Result<HashMap<NetworkId, (ExitRoot, BalanceTreeByNetwork)>, ProofError> {
     let mut aggregates = HashMap::with_capacity(batches.len());
 
     for batch in batches {
@@ -125,9 +125,11 @@ pub fn create_aggregates(
     Ok(aggregates)
 }
 
-/// Flatten the [`Aggregate`] across all batches.
-pub fn create_collation(aggregates: &HashMap<NetworkId, (ExitRoot, Aggregate)>) -> Aggregate {
-    let mut collated = Aggregate::new();
+/// Flatten the [`BalanceTreeByNetwork`] across all batches.
+pub fn merge_balance_trees(
+    aggregates: &HashMap<NetworkId, (ExitRoot, BalanceTreeByNetwork)>,
+) -> BalanceTreeByNetwork {
+    let mut collated = BalanceTreeByNetwork::new();
 
     for (_exit_root, aggregate) in aggregates.values() {
         collated.merge(aggregate);
@@ -143,8 +145,8 @@ pub type BalanceRoot = Digest;
 pub fn generate_full_proof(
     batches: &[Batch],
 ) -> Result<HashMap<NetworkId, (ExitRoot, BalanceRoot)>, ProofError> {
-    let aggregates = create_aggregates(batches)?;
-    let collated: Aggregate = create_collation(&aggregates);
+    let aggregates = generate_network_balance_trees(batches)?;
+    let collated: BalanceTreeByNetwork = merge_balance_trees(&aggregates);
 
     // Detect the debtors if any
     let debtors = collated
