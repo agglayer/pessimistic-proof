@@ -10,3 +10,5 @@ mod withdrawal;
 pub use withdrawal::{NetworkId, TokenInfo, Withdrawal};
 
 pub mod batch;
+
+pub mod local_balance_tree;

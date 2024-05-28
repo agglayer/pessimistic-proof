@@ -1,8 +1,9 @@
 use std::{collections::HashMap, time::Instant};
 
 use poly_pessimistic_proof::{
-    batch::{Balance, BalanceTree, Batch, Deposit},
+    batch::Batch,
     keccak::Digest as KeccakDigest,
+    local_balance_tree::{Balance, BalanceTree, Deposit},
     local_exit_tree::{hasher::Keccak256Hasher, LocalExitTree},
     test_utils::{parse_json_file, DepositEventData},
     NetworkId, TokenInfo, Withdrawal,

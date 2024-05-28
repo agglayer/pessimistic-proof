@@ -1,6 +1,7 @@
 use poly_pessimistic_proof::{
-    batch::{Balance, BalanceTree, Batch, Deposit},
+    batch::Batch,
     generate_full_proof,
+    local_balance_tree::{Balance, BalanceTree, Deposit},
     local_exit_tree::{hasher::Keccak256Hasher, LocalExitTree},
     ProofError, TokenInfo, Withdrawal,
 };
