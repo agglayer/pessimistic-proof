@@ -83,7 +83,7 @@ pub enum ProofError {
 
 /// Returns the root of the local exit tree resulting from adding every withdrawal to the previous
 /// local exit tree, as well as a record of all withdrawals and deposits made.
-pub fn generate_leaf_proof(batch: Batch) -> Result<(ExitRoot, Aggregate), ProofError> {
+pub fn get_network_aggregate(batch: Batch) -> Result<(ExitRoot, Aggregate), ProofError> {
     {
         let computed_root = batch.prev_local_exit_tree.get_root();
 
@@ -118,7 +118,7 @@ pub fn create_aggregates(
     let mut aggregates = HashMap::with_capacity(batches.len());
 
     for batch in batches {
-        let (new_exit_root, aggregate) = generate_leaf_proof(batch.clone())?;
+        let (new_exit_root, aggregate) = get_network_aggregate(batch.clone())?;
         aggregates.insert(batch.origin_network, (new_exit_root, aggregate));
     }
 
