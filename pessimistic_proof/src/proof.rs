@@ -34,13 +34,13 @@ impl Aggregate {
         self.0
             .entry(origin_network)
             .or_default()
-            .withdraw(&withdrawal.token_info, &withdrawal.amount);
+            .withdraw(withdrawal.token_info.clone(), withdrawal.amount);
 
         // Deposit the destination network
         self.0
             .entry(withdrawal.dest_network)
             .or_default()
-            .deposit(&withdrawal.token_info, &withdrawal.amount);
+            .deposit(withdrawal.token_info, withdrawal.amount);
     }
 
     /// Merge two [`Aggregate`].
@@ -48,7 +48,7 @@ impl Aggregate {
         for (network, balance_tree) in other.0.iter() {
             self.0
                 .entry(*network)
-                .and_modify(|bt| bt.merge(&balance_tree.balances))
+                .and_modify(|bt| bt.merge(balance_tree))
                 .or_insert(balance_tree.clone());
         }
     }
@@ -82,7 +82,7 @@ pub enum ProofError {
 }
 
 /// Returns the root of the local exit tree resulting from adding every withdrawal to the previous
-/// local exit tree, as well as a record of all witdrawals and deposits made.
+/// local exit tree, as well as a record of all withdrawals and deposits made.
 pub fn generate_leaf_proof(batch: Batch) -> Result<(ExitRoot, Aggregate), ProofError> {
     {
         let computed_root = batch.prev_local_exit_tree.get_root();
@@ -105,13 +105,13 @@ pub fn generate_leaf_proof(batch: Batch) -> Result<(ExitRoot, Aggregate), ProofE
 
     for withdrawal in batch.withdrawals {
         new_local_exit_tree.add_leaf(withdrawal.hash());
-        aggregate.insert(batch.origin_network, withdrawal.clone());
+        aggregate.insert(batch.origin_network, withdrawal);
     }
 
     Ok((new_local_exit_tree.get_root(), aggregate))
 }
 
-// Generate the [`Aggregate`] for each Batch.
+/// Generates the [`Aggregate`] for each Batch.
 pub fn create_aggregates(
     batches: &[Batch],
 ) -> Result<HashMap<NetworkId, (ExitRoot, Aggregate)>, ProofError> {
@@ -144,10 +144,9 @@ pub fn generate_full_proof(
     batches: &[Batch],
 ) -> Result<HashMap<NetworkId, (ExitRoot, BalanceRoot)>, ProofError> {
     let aggregates = create_aggregates(batches)?;
-
     let collated: Aggregate = create_collation(&aggregates);
 
-    // Detect the cheaters if any
+    // Detect the debtors if any
     let debtors = collated
         .iter()
         .filter(|(_, balance_tree)| balance_tree.has_debt())

@@ -41,12 +41,6 @@ impl From<Withdraw> for Balance {
 }
 
 impl Balance {
-    /// Returns the balance.
-    pub fn balance(&self) -> U256 {
-        self.deposit - self.withdraw
-    }
-
-    /// Returns whether the balance is negative.
     pub fn is_negative(&self) -> bool {
         self.withdraw > self.deposit
     }
@@ -74,49 +68,44 @@ impl Balance {
 /// Records the balances for each [`TokenInfo`].
 #[serde_as]
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
-pub struct BalanceTree {
-    /// Balances for each token
-    pub(crate) balances: BTreeMap<TokenInfo, Balance>,
-}
+pub struct BalanceTree(BTreeMap<TokenInfo, Balance>);
 
 impl From<Vec<(TokenInfo, Balance)>> for BalanceTree {
     fn from(initial_balance: Vec<(TokenInfo, Balance)>) -> Self {
-        Self {
-            balances: initial_balance.into_iter().collect(),
-        }
+        Self(initial_balance.into_iter().collect())
     }
 }
 
 impl BalanceTree {
-    /// Apply deposit to [`TokenInfo`].
-    pub fn deposit(&mut self, token: &TokenInfo, amount: &U256) {
-        self.balances.entry(token.clone()).or_default().deposit(*amount);
+    /// Apply deposit to the given [`TokenInfo`].
+    pub fn deposit(&mut self, token: TokenInfo, amount: U256) {
+        self.0.entry(token).or_default().deposit(amount);
     }
 
-    /// Apply withdraw to [`TokenInfo`].
-    pub fn withdraw(&mut self, token: &TokenInfo, amount: &U256) {
-        self.balances.entry(token.clone()).or_default().withdraw(*amount);
+    /// Apply withdraw to the given [`TokenInfo`].
+    pub fn withdraw(&mut self, token: TokenInfo, amount: U256) {
+        self.0.entry(token).or_default().withdraw(amount);
     }
 
     /// Merge with another [`BalanceTree`].
-    pub fn merge(&mut self, other: &BTreeMap<TokenInfo, Balance>) {
-        for (token, balance) in other.iter() {
-            self.deposit(token, &balance.deposit);
-            self.withdraw(token, &balance.withdraw)
+    pub fn merge(&mut self, other: &BalanceTree) {
+        for (token, balance) in other.0.iter() {
+            self.deposit(token.clone(), balance.deposit);
+            self.withdraw(token.clone(), balance.withdraw)
         }
     }
 
     /// Returns whether any token has debt.
     /// TODO: We may want to return the debtor (token, debt)
     pub fn has_debt(&self) -> bool {
-        self.balances.iter().any(|(_, balance)| balance.is_negative())
+        self.0.iter().any(|(_, balance)| balance.is_negative())
     }
 
     /// Returns the hash of [`BalanceTree`].
     pub fn hash(&self) -> Digest {
         let mut hasher = Keccak::v256();
 
-        for (token_info, balance) in self.balances.iter() {
+        for (token_info, balance) in self.0.iter() {
             hasher.update(&token_info.hash());
             hasher.update(&balance.hash());
         }
@@ -127,8 +116,7 @@ impl BalanceTree {
     }
 }
 
-/// Represents a batch submitted by CDKs to the AggLayer.
-#[serde_as]
+/// Represents the required data from each CDK for the invariant proof.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Batch {
     /// Origin network which emitted this batch

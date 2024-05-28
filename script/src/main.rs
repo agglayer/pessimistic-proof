@@ -108,7 +108,7 @@ fn main() {
 
     // Read output.
     let new_roots: HashMap<NetworkId, (KeccakDigest, KeccakDigest)> = proof.public_values.read();
-    let (exit_root, _balance_root) = new_roots.get(&origin_network).expect("unexisting");
+    let (exit_root, _balance_root) = new_roots.get(&origin_network).expect("nonexistent network");
 
     if *exit_root
         == digest_from_hex("bd03ab620225bd2dbe77791aced3c995e1d1a4ba3685a72117d4dc3253f57658")
