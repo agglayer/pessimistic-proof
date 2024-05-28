@@ -144,6 +144,7 @@ pub fn generate_full_proof(
     batches: &[Batch],
 ) -> Result<HashMap<NetworkId, (ExitRoot, BalanceRoot)>, ProofError> {
     let aggregates = create_aggregates(batches)?;
+
     let collated: Aggregate = create_collation(&aggregates);
 
     // Detect the cheaters if any

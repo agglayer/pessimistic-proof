@@ -90,6 +90,8 @@ fn make_batch(origin_network: NetworkId) -> Batch {
 }
 
 fn main() {
+    sp1_sdk::utils::setup_logger();
+
     // Generate proof.
     let mut stdin = SP1Stdin::new();
     let client = ProverClient::new();
