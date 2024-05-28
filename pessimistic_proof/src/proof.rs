@@ -81,10 +81,28 @@ pub enum ProofError {
     NotEnoughBalance { debtors: Vec<NetworkId> },
 }
 
-/// Returns the root of the local exit tree resulting from adding every withdrawal to the previous
-/// local exit tree, as well as a record of all withdrawals and deposits made.
-pub fn get_network_aggregate(batch: Batch) -> Result<(ExitRoot, BalanceTreeByNetwork), ProofError> {
-    {
+/// Flatten the [`BalanceTreeByNetwork`] across all batches.
+pub fn merge_balance_trees(
+    aggregates: &HashMap<NetworkId, BalanceTreeByNetwork>,
+) -> BalanceTreeByNetwork {
+    let mut collated = BalanceTreeByNetwork::new();
+
+    for aggregate in aggregates.values() {
+        collated.merge(aggregate);
+    }
+
+    collated
+}
+
+pub type ExitRoot = Digest;
+pub type BalanceRoot = Digest;
+
+/// Returns the updated local balance and exit roots for each network.
+pub fn generate_full_proof(
+    batches: &[Batch],
+) -> Result<(HashMap<NetworkId, ExitRoot>, HashMap<NetworkId, BalanceRoot>), ProofError> {
+    // Check the validity of the provided exit roots
+    for batch in batches {
         let computed_root = batch.prev_local_exit_tree.get_root();
 
         if computed_root != batch.prev_local_exit_root {
@@ -95,58 +113,20 @@ pub fn get_network_aggregate(batch: Batch) -> Result<(ExitRoot, BalanceTreeByNet
         }
     }
 
-    let mut new_local_exit_tree = batch.prev_local_exit_tree;
+    // Compute the new exit root
+    let exit_roots: HashMap<NetworkId, ExitRoot> = batches
+        .iter()
+        .map(|batch| (batch.origin_network, batch.compute_new_exit_root()))
+        .collect();
 
-    let mut aggregate: BalanceTreeByNetwork = {
-        let base: BTreeMap<NetworkId, BalanceTree> =
-            [(batch.origin_network, batch.prev_local_balance_tree)].into();
-        base.into()
-    };
+    // Compute the new balance tree by network
+    let balance_trees: HashMap<NetworkId, BalanceTreeByNetwork> = batches
+        .iter()
+        .map(|batch| (batch.origin_network, batch.compute_new_balance_tree()))
+        .collect();
 
-    for withdrawal in batch.withdrawals {
-        new_local_exit_tree.add_leaf(withdrawal.hash());
-        aggregate.insert(batch.origin_network, withdrawal);
-    }
-
-    Ok((new_local_exit_tree.get_root(), aggregate))
-}
-
-/// Generates the [`BalanceTreeByNetwork`] for each Batch.
-pub fn generate_network_balance_trees(
-    batches: &[Batch],
-) -> Result<HashMap<NetworkId, (ExitRoot, BalanceTreeByNetwork)>, ProofError> {
-    let mut aggregates = HashMap::with_capacity(batches.len());
-
-    for batch in batches {
-        let (new_exit_root, aggregate) = get_network_aggregate(batch.clone())?;
-        aggregates.insert(batch.origin_network, (new_exit_root, aggregate));
-    }
-
-    Ok(aggregates)
-}
-
-/// Flatten the [`BalanceTreeByNetwork`] across all batches.
-pub fn merge_balance_trees(
-    aggregates: &HashMap<NetworkId, (ExitRoot, BalanceTreeByNetwork)>,
-) -> BalanceTreeByNetwork {
-    let mut collated = BalanceTreeByNetwork::new();
-
-    for (_exit_root, aggregate) in aggregates.values() {
-        collated.merge(aggregate);
-    }
-
-    collated
-}
-
-pub type ExitRoot = Digest;
-pub type BalanceRoot = Digest;
-
-/// Returns the updated local balance tree for each network.
-pub fn generate_full_proof(
-    batches: &[Batch],
-) -> Result<HashMap<NetworkId, (ExitRoot, BalanceRoot)>, ProofError> {
-    let aggregates = generate_network_balance_trees(batches)?;
-    let collated: BalanceTreeByNetwork = merge_balance_trees(&aggregates);
+    // Merge the balance tree by network
+    let collated: BalanceTreeByNetwork = merge_balance_trees(&balance_trees);
 
     // Detect the debtors if any
     let debtors = collated
@@ -159,14 +139,10 @@ pub fn generate_full_proof(
         return Err(ProofError::NotEnoughBalance { debtors });
     }
 
-    let new_roots: HashMap<NetworkId, (ExitRoot, BalanceRoot)> = collated
+    let balance_roots: HashMap<NetworkId, BalanceRoot> = collated
         .iter()
-        .map(|(network, balance_tree)| {
-            let exit_root = aggregates.get(network).map_or(Digest::default(), |roots| roots.0);
-            let balance_root = balance_tree.hash();
-            (*network, (exit_root, balance_root))
-        })
+        .map(|(network, balance_tree)| (*network, balance_tree.hash()))
         .collect();
 
-    Ok(new_roots)
+    Ok((exit_roots, balance_roots))
 }

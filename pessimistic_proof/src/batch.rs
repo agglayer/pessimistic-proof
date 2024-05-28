@@ -8,6 +8,7 @@ use tiny_keccak::{Hasher, Keccak};
 use crate::{
     keccak::Digest,
     local_exit_tree::{hasher::Keccak256Hasher, LocalExitTree},
+    proof::BalanceTreeByNetwork,
     withdrawal::{NetworkId, TokenInfo},
     Withdrawal,
 };
@@ -147,5 +148,31 @@ impl Batch {
             prev_local_balance_tree,
             withdrawals,
         }
+    }
+
+    /// Compute the new exit root.
+    pub fn compute_new_exit_root(&self) -> Digest {
+        let mut new_local_exit_tree = self.prev_local_exit_tree.clone();
+
+        for withdrawal in &self.withdrawals {
+            new_local_exit_tree.add_leaf(withdrawal.hash());
+        }
+
+        new_local_exit_tree.get_root()
+    }
+
+    /// Compute the new balance tree.
+    pub fn compute_new_balance_tree(&self) -> BalanceTreeByNetwork {
+        let mut aggregate: BalanceTreeByNetwork = {
+            let base: BTreeMap<NetworkId, BalanceTree> =
+                [(self.origin_network, self.prev_local_balance_tree.clone())].into();
+            base.into()
+        };
+
+        for withdrawal in &self.withdrawals {
+            aggregate.insert(self.origin_network, withdrawal.clone());
+        }
+
+        aggregate
     }
 }
