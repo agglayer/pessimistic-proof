@@ -1,6 +1,6 @@
 #![no_main]
 
-use poly_invariant_proof::{
+use poly_pessimistic_proof::{
     generate_leaf_proof,
     keccak::Digest as KeccakDigest,
     local_exit_tree::{hasher::Keccak256Hasher, LocalExitTree},

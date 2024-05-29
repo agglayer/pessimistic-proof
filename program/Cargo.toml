@@ -1,9 +1,9 @@
 [workspace]
 [package]
 version = "0.1.0"
-name = "invariant-proof-program"
+name = "pessimistic-proof-program"
 edition = "2021"
 
 [dependencies]
-poly-invariant-proof = { path = "../invariant_proof" }
+poly-pessimistic-proof = { path = "../pessimistic_proof" }
 sp1-zkvm = { git = "https://github.com/succinctlabs/sp1", tag = "v1.0.0-testnet" }

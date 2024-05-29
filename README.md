@@ -1,4 +1,4 @@
-# Invariant Proof
+# Pessimistic Proof
 
 Current guidance from Succinct for running in performance-optimized mode:
 
