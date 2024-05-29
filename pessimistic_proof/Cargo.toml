@@ -1,5 +1,5 @@
 [package]
-name = "poly-invariant-proof"
+name = "poly-pessimistic-proof"
 version = "0.1.0"
 edition = "2021"
 

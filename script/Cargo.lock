@@ -2450,11 +2450,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "invariant-proof-script"
+name = "pessimistic-proof-script"
 version = "0.1.0"
 dependencies = [
  "hex",
- "poly-invariant-proof",
+ "poly-pessimistic-proof",
  "sp1-helper",
  "sp1-sdk",
 ]
@@ -3467,7 +3467,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "db23d408679286588f4d4644f965003d056e3dd5abcaaa938116871d7ce2fee7"
 
 [[package]]
-name = "poly-invariant-proof"
+name = "poly-pessimistic-proof"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",

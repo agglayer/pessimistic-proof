@@ -1,12 +1,12 @@
 [workspace]
 [package]
 version = "0.1.0"
-name = "invariant-proof-script"
+name = "pessimistic-proof-script"
 edition = "2021"
 
 [dependencies]
 hex = "0.4.3"
-poly-invariant-proof = { path = "../invariant_proof" }
+poly-pessimistic-proof = { path = "../pessimistic_proof" }
 sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", tag = "v1.0.0-testnet" }
 
 [build-dependencies]
