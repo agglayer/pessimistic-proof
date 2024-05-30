@@ -2357,17 +2357,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pessimistic-proof-script"
-version = "0.1.0"
-dependencies = [
- "hex",
- "poly-pessimistic-proof",
- "reth-primitives",
- "sp1-helper",
- "sp1-sdk",
-]
-
-[[package]]
 name = "ipnet"
 version = "2.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3296,6 +3285,17 @@ name = "percent-encoding"
 version = "2.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3148f5046208a5d56bcfc03053e3ca6334e51da8dfb19b6cdc8b306fae3283e"
+
+[[package]]
+name = "pessimistic-proof-script"
+version = "0.1.0"
+dependencies = [
+ "hex",
+ "poly-pessimistic-proof",
+ "reth-primitives",
+ "sp1-helper",
+ "sp1-sdk",
+]
 
 [[package]]
 name = "pest"

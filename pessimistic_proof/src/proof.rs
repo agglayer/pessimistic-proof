@@ -16,11 +16,10 @@ pub enum ProofError {
 
 pub type ExitRoot = Digest;
 pub type BalanceRoot = Digest;
+pub type FullProofOutput = (HashMap<NetworkId, ExitRoot>, HashMap<NetworkId, BalanceRoot>);
 
 /// Returns the updated local balance and exit roots for each network.
-pub fn generate_full_proof(
-    batches: &[Batch],
-) -> Result<(HashMap<NetworkId, ExitRoot>, HashMap<NetworkId, BalanceRoot>), ProofError> {
+pub fn generate_full_proof(batches: &[Batch]) -> Result<FullProofOutput, ProofError> {
     // Check the validity of the provided exit roots
     for batch in batches {
         let computed_root = batch.prev_local_exit_tree.get_root();
@@ -46,20 +45,19 @@ pub fn generate_full_proof(
         .collect();
 
     // Merge the balance tree by network
-    let collated: BalanceTreeByNetwork = merge_balance_trees(&balance_trees);
+    let balance_tree_by_network: BalanceTreeByNetwork = merge_balance_trees(&balance_trees);
 
     // Detect the debtors if any
-    let debtors = collated
+    let debtors = balance_tree_by_network
         .iter()
-        .filter(|(_, balance_tree)| balance_tree.has_debt())
-        .map(|(network, _)| *network)
+        .filter_map(|(network, balance_tree)| balance_tree.has_debt().then(|| *network))
         .collect::<Vec<_>>();
 
     if !debtors.is_empty() {
         return Err(ProofError::NotEnoughBalance { debtors });
     }
 
-    let balance_roots: HashMap<NetworkId, BalanceRoot> = collated
+    let balance_roots: HashMap<NetworkId, BalanceRoot> = balance_tree_by_network
         .iter()
         .map(|(network, balance_tree)| (*network, balance_tree.hash()))
         .collect();
