@@ -7,7 +7,8 @@ edition = "2021"
 [dependencies]
 hex = "0.4.3"
 poly-pessimistic-proof = { path = "../pessimistic_proof" }
-sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", tag = "v1.0.0-testnet" }
+reth-primitives = { git = "https://github.com/sp1-patches/reth", default-features = false, branch = "sp1-reth" }
+sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", tag = "v1.0.2-testnet" }
 
 [build-dependencies]
-sp1-helper = { git = "https://github.com/succinctlabs/sp1.git", tag = "v1.0.0-testnet" }
+sp1-helper = { git = "https://github.com/succinctlabs/sp1.git", tag = "v1.0.2-testnet" }
