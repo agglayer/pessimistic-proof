@@ -1,7 +1,7 @@
 use std::{collections::HashMap, time::Instant};
 
 use poly_pessimistic_proof::{
-    batch::Batch,
+    certificate::Certificate,
     keccak::Digest as KeccakDigest,
     local_balance_tree::{Balance, BalanceTree, Deposit},
     local_exit_tree::{hasher::Keccak256Hasher, LocalExitTree},
@@ -16,7 +16,7 @@ const WITHDRAWALS_JSON_FILE_PATH: &str = "src/data/withdrawals.json";
 
 const INITIAL_LEAF_COUNT: u32 = 1853;
 
-fn make_batch(origin_network: NetworkId) -> Batch {
+fn make_certificate(origin_network: NetworkId) -> Certificate {
     let withdrawals: Vec<Withdrawal> = {
         let deposit_event_data: Vec<DepositEventData> = parse_json_file(WITHDRAWALS_JSON_FILE_PATH);
 
@@ -81,7 +81,7 @@ fn make_batch(origin_network: NetworkId) -> Batch {
 
     let prev_local_exit_root = prev_local_exit_tree.get_root();
 
-    Batch {
+    Certificate {
         origin_network,
         prev_local_exit_tree,
         prev_local_exit_root,
@@ -98,10 +98,10 @@ fn main() {
     let client = ProverClient::new();
     let (proving_key, verifying_key) = client.setup(ELF);
 
-    // Make a single batch from network 0.
+    // Make a single certificate from network 0.
     let origin_network: NetworkId = 0.into();
-    let batches = vec![make_batch(origin_network)];
-    stdin.write(&batches);
+    let certificates = vec![make_certificate(origin_network)];
+    stdin.write(&certificates);
 
     let now = Instant::now();
     let mut proof = client.prove(&proving_key, stdin).expect("proving failed");
