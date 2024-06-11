@@ -2,7 +2,7 @@ pub mod keccak;
 pub mod local_exit_tree;
 
 mod proof;
-pub use proof::{generate_full_proof, ProofError};
+pub use proof::{generate_full_proof, FullProofOutput, ProofError};
 
 pub mod test_utils;
 
