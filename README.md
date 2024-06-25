@@ -1,3 +1,7 @@
+>## Archive Note
+>The `pessimistic-proof` library has been moved into https://github.com/agglayer/agglayer.
+>Please refer to this new location for inquiries or contributions.
+
 # Pessimistic Proof
 
 Current guidance from Succinct for running in performance-optimized mode:
