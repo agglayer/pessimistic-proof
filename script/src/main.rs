@@ -1,28 +1,26 @@
-use std::{collections::HashMap, time::Instant};
+use std::{
+    collections::{BTreeMap, HashMap},
+    time::Instant,
+};
 
 use poly_pessimistic_proof::{
-    batch::Batch,
+    certificate::Certificate,
     keccak::Digest as KeccakDigest,
-    local_balance_tree::{Balance, BalanceTree, Deposit},
+    local_balance_tree::{Balance, BalanceTree, BalanceTreeByNetwork, Deposit},
     local_exit_tree::{hasher::Keccak256Hasher, LocalExitTree},
     test_utils::{parse_json_file, DepositEventData},
-    NetworkId, TokenInfo, Withdrawal,
+    NetworkId, State, TokenInfo, Withdrawal,
 };
 use reth_primitives::{address, U256};
 use sp1_sdk::{ProverClient, SP1Stdin};
 
 const ELF: &[u8] = include_bytes!("../../program/elf/riscv32im-succinct-zkvm-elf");
 const WITHDRAWALS_JSON_FILE_PATH: &str = "src/data/withdrawals.json";
-
 const INITIAL_LEAF_COUNT: u32 = 1853;
+const ORIGIN_NETWORK: u32 = 0;
 
-fn make_batch(origin_network: NetworkId) -> Batch {
-    let withdrawals: Vec<Withdrawal> = {
-        let deposit_event_data: Vec<DepositEventData> = parse_json_file(WITHDRAWALS_JSON_FILE_PATH);
-
-        deposit_event_data.into_iter().map(Into::into).collect()
-    };
-
+fn make_proof_inputs() -> (State, Vec<Certificate>) {
+    let origin_network = ORIGIN_NETWORK.into();
     let prev_local_exit_tree: LocalExitTree<Keccak256Hasher> = LocalExitTree::from_parts(
         INITIAL_LEAF_COUNT,
         [
@@ -61,33 +59,54 @@ fn make_batch(origin_network: NetworkId) -> Batch {
         ],
     );
 
-    let prev_local_balance_tree: BalanceTree = {
-        let eth = TokenInfo {
-            origin_network: origin_network.clone(),
-            origin_token_address: address!("0000000000000000000000000000000000000000"),
+    let certificate = {
+        let withdrawals: Vec<Withdrawal> = {
+            let deposit_event_data: Vec<DepositEventData> =
+                parse_json_file(WITHDRAWALS_JSON_FILE_PATH);
+
+            deposit_event_data.into_iter().map(Into::into).collect()
         };
 
-        let token = TokenInfo {
-            origin_network: origin_network.clone(),
-            origin_token_address: address!("a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"),
-        };
-
-        let infinite_eth = || -> (TokenInfo, Balance) { (eth.clone(), Deposit(U256::MAX).into()) };
-        let infinite_token =
-            || -> (TokenInfo, Balance) { (token.clone(), Deposit(U256::MAX).into()) };
-
-        BalanceTree::from(vec![infinite_eth(), infinite_token()])
+        Certificate {
+            origin_network,
+            prev_local_exit_root: prev_local_exit_tree.get_root(),
+            withdrawals,
+        }
     };
 
-    let prev_local_exit_root = prev_local_exit_tree.get_root();
+    let initial_state = {
+        let prev_local_balance_tree: BalanceTree = {
+            let eth = TokenInfo {
+                origin_network: origin_network.clone(),
+                origin_token_address: address!("0000000000000000000000000000000000000000"),
+            };
 
-    Batch {
-        origin_network,
-        prev_local_exit_tree,
-        prev_local_exit_root,
-        prev_local_balance_tree,
-        withdrawals,
-    }
+            let token = TokenInfo {
+                origin_network: origin_network.clone(),
+                origin_token_address: address!("a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"),
+            };
+
+            let infinite_eth =
+                || -> (TokenInfo, Balance) { (eth.clone(), Deposit(U256::MAX).into()) };
+            let infinite_token =
+                || -> (TokenInfo, Balance) { (token.clone(), Deposit(U256::MAX).into()) };
+
+            BalanceTree::from(vec![infinite_eth(), infinite_token()])
+        };
+
+        let global_balance_tree: BalanceTreeByNetwork = {
+            let base: BTreeMap<NetworkId, BalanceTree> =
+                [(origin_network, prev_local_balance_tree)].into();
+            base.into()
+        };
+
+        State {
+            global_exit_tree: [(origin_network, prev_local_exit_tree)].into(),
+            global_balance_tree,
+        }
+    };
+
+    (initial_state, vec![certificate])
 }
 
 fn main() {
@@ -98,16 +117,16 @@ fn main() {
     let client = ProverClient::new();
     let (proving_key, verifying_key) = client.setup(ELF);
 
-    // Make a single batch from network 0.
-    let origin_network: NetworkId = 0.into();
-    let batches = vec![make_batch(origin_network)];
-    stdin.write(&batches);
+    let (initial_state, certificates) = make_proof_inputs();
+    stdin.write(&initial_state);
+    stdin.write(&certificates);
 
     let now = Instant::now();
     let mut proof = client.prove(&proving_key, stdin).expect("proving failed");
     let prover_time = now.elapsed();
 
     // Read output.
+    let origin_network = ORIGIN_NETWORK.into();
     let new_roots: HashMap<NetworkId, (KeccakDigest, KeccakDigest)> = proof.public_values.read();
     let (exit_root, _balance_root) = new_roots.get(&origin_network).expect("nonexistent network");
 
